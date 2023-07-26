@@ -200,6 +200,8 @@ class Predictor(BaseModels):
             output = output.split(prompt)[-1]
             if 'eos_token_id' in gen_kwargs:
                 eos_tokens = self.tokenizer.convert_ids_to_tokens(gen_kwargs['eos_token_id'])
+            else:
+                eos_tokens = self.tokenizer.eos_token
             output = re.sub(make_regex('|'.join(eos_tokens)) + '$', '', output)
             outputs.append(output)
             results.append({'Input': prompt, 'Output': output})
