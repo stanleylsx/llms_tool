@@ -126,7 +126,22 @@ terminal_inference| Trminal        |
 ### SFT training
 
 #### 训练数据
-指令微调数据参考datasets/finetune/train下面的文件，数据由instruction、input、output和history四个字段组成。使用的时候把数据路径填写到DataTrainingArguments配置里面：
+指令微调数据参考datasets/finetune/example/train下面的文件，数据由instruction、input、output和history四个字段组成。
+```
+[
+  {
+    "instruction": "好的，我想问下你是谁？",
+    "input": "",
+    "output": "我是一个AI模型，能够解决你提出的问题。",
+    "history": [
+        "你好呀。",
+        "你好，请问您有什么需要帮助的吗？"
+      ]
+  },
+  ...  
+]
+```
+使用的时候把数据路径填写到DataTrainingArguments配置里面：
 ```
 train_file_dir: Optional[str] = field(
     default='datasets/finetune/train',

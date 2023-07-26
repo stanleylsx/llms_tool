@@ -153,21 +153,21 @@ class DataTrainingArguments:
     Arguments pertaining to what data we are going to input our model for training and evaluation.
     """
     train_file_dir: Optional[str] = field(
-        default='datasets/finetune/train',
+        default='datasets/finetune/example/train',
         metadata={
             # 训练集保存的路径。
             'help': 'The train json data file folder.'
         }
     )
     validation_file_dir: Optional[str] = field(
-        default='datasets/finetune/test',
+        default='datasets/finetune/example/test',
         metadata={
             # 验证集保存的路径。
             'help': 'The evaluation json file folder.'
         }
     )
     test_file: Optional[str] = field(
-        default='datasets/finetune/test/test_data.json',
+        default='datasets/finetune/example/test/test_data.json',
         metadata={
             # 测试集保存的路径。
             'help': 'The test file.'
