@@ -12,7 +12,7 @@ from transformers import Seq2SeqTrainingArguments
 # 打印模型参数：             show_model_info
 # 存储量化的模型：            save_quantized_model
 # 模型效果测试及评估：         batch_test
-mode = 'train_supervised_fine_tuning'
+mode = 'web_inference'
 
 
 @dataclass
@@ -29,7 +29,7 @@ class ModelArguments:
         }
     )
     model_path: str = field(
-        default='/home/lishouxian/Projects/llm_models/ChatGLM2-6B/fp16',
+        default='D:\projects\LLM_models\LLM_chat_models\chatglm2-6b',
         metadata={
             # 从huggingface.co/models上下载的模型保存到本地的路径。
             'help': 'Local path to pretrained model or model identifier from huggingface.co/models.'
@@ -184,7 +184,9 @@ class DataTrainingArguments:
         default='chatglm',
         metadata={
             # 选择对应模型的模板prompt，一般Chat模型的出品方都会有一个固定的prompt。
-            'help': 'Which template to use for constructing prompts in training and inference.'
+            'help': 'Which template to use for constructing prompts in training and inference.',
+            'choices': ['default', 'vanilla', 'alpaca', 'vicuna', 'belle', 'linly', 'billa', 'ziya', 'aquila',
+                        'firefly', 'openbuddy', 'internlm', 'baichuan', 'chatglm', 'moss', 'rwkv', 'linksoul']
         }
     )
     overwrite_cache: Optional[bool] = field(
