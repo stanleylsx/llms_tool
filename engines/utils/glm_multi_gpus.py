@@ -42,7 +42,10 @@ def auto_configure_device_map(num_gpus, model):
             gpu_target += 1
             used = 0
         assert gpu_target < num_gpus
-        device_map[f'transformer.encoder.layers.{i}'] = gpu_target
+        if chatglm2:
+            device_map[f'transformer.encoder.layers.{i}'] = gpu_target
+        else:
+            device_map[f'transformer.layers.{i}'] = gpu_target
         used += 1
 
     return device_map
