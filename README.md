@@ -233,3 +233,4 @@ cpm_quantization_target: Optional[str] = field(
 - [ ] RLHF
   - [ ] PPO模型训练
   - [ ] 奖励模型训练
+- [ ] nbce和ntk集成
