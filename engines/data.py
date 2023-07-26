@@ -92,7 +92,10 @@ class DataManager:
             if examples['instruction'][i] and examples['output'][i]:
                 query, answer = examples['instruction'][i], examples['output'][i]
                 query = query + examples['input'][i] if examples['input'][i] else query
-                prompt = self.prompt_template.get_prompt(query, [])
+                if (history := examples['history'][i]) is not None:
+                    prompt = self.prompt_template.get_prompt(query, history)
+                else:
+                    prompt = self.prompt_template.get_prompt(query, [])
                 yield prompt, answer
 
     def preprocess_train_supervised_fine_tuning_dataset(self, examples):
