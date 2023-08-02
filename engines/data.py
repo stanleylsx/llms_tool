@@ -20,6 +20,7 @@ class DataManager:
         self.prompt_template = Template(self.data_args.prompt_template)
         logger.info(f'Load tokenizer: {self.model_args.model_path}')
         self.tokenizer = self.load_tokenizer(self.model_args.model_path)
+        self.logger.info(f'Tokenizer: {self.tokenizer}')
         if self.data_args.ignore_pad_token_for_loss:
             self.label_pad_token_id = -100
         else:
@@ -92,7 +93,7 @@ class DataManager:
             if examples['instruction'][i] and examples['output'][i]:
                 query, answer = examples['instruction'][i], examples['output'][i]
                 query = query + examples['input'][i] if examples['input'][i] else query
-                if (history := examples['history'][i]) is not None:
+                if 'history' in examples and (history := examples['history'][i]) is not None:
                     prompt = self.prompt_template.get_prompt(query, history)
                 else:
                     prompt = self.prompt_template.get_prompt(query, [])
