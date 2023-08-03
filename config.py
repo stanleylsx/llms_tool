@@ -116,7 +116,7 @@ class ModelArguments:
             InternLM choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"up_proj\", \"down_proj\"] \
             Aquila choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"] \
             Baichuan choices: [\"W_pack\", \"o_proj\", \"gate_proj\", \"up_proj\", \"down_proj\"] \
-            Qwen choices: [\"c_attn\", \"c_proj\", \"w1\", \"w2\"]" \
+            Qwen choices: [\"c_attn\", \"c_proj\", \"w1\", \"w2\"]"
         }
     )
     gradio_port: Optional[int] = field(
@@ -482,7 +482,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
             InternLM choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"up_proj\", \"down_proj\"] \
             Aquila choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"] \
             Baichuan choices: [\"W_pack\", \"o_proj\", \"gate_proj\", \"up_proj\", \"down_proj\"] \
-            Qwen choices: [\"c_attn\", \"c_proj\", \"w1\", \"w2\"]" \
+            Qwen choices: [\"c_attn\", \"c_proj\", \"w1\", \"w2\"]"
         }
     )
     # prompt_tuning:
