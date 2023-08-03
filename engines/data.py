@@ -27,7 +27,7 @@ class DataManager:
             self.label_pad_token_id = self.tokenizer.pad_token_id
 
     def load_tokenizer(self, model_path):
-        if self.model_args.model_type in ['chatglm', 'baichuan', 'internlm', 'aquila', 'moss']:
+        if self.model_args.model_type in ['chatglm', 'baichuan', 'internlm', 'aquila', 'moss', 'qwen']:
             tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
         elif self.model_args.model_type == 'falcon':
             tokenizer = AutoTokenizer.from_pretrained(model_path, padding_side=self.model_args.padding_side)
@@ -47,8 +47,6 @@ class DataManager:
                 'bos_token': '<sop>',
                 'unk_token': '<unk>',
             })
-        if tokenizer.pad_token is None:
-            tokenizer.pad_token_id = 0
         return tokenizer
 
     def load_datasets(self):
