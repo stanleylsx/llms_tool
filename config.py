@@ -29,7 +29,7 @@ class ModelArguments:
         }
     )
     model_path: str = field(
-        default='/home/mailai/datahub/llm_models/Qwen/Qwen-7B-Chat',
+        default='D:\projects\LLM_models\LLM_chat_models\Qwen-7B-Chat',
         metadata={
             # 从huggingface.co/models上下载的模型保存到本地的路径。
             'help': 'Local path to pretrained model or model identifier from huggingface.co/models.'
@@ -120,7 +120,7 @@ class ModelArguments:
         }
     )
     gradio_port: Optional[int] = field(
-        default=1234,
+        default=7777,
         metadata={
             # 使用web_inference进行交互时候，网页的端口号。
             'help': 'The port id of gradio.'
@@ -154,21 +154,21 @@ class DataTrainingArguments:
     Arguments pertaining to what data we are going to input our model for training and evaluation.
     """
     train_file_dir: Optional[str] = field(
-        default='datasets/finetune/example/train',
+        default='datasets/finetune/dataset/train',
         metadata={
             # 训练集保存的路径。
             'help': 'The train json data file folder.'
         }
     )
     validation_file_dir: Optional[str] = field(
-        default='datasets/finetune/example/test',
+        default='datasets/finetune/dataset/test',
         metadata={
             # 验证集保存的路径。
             'help': 'The evaluation json file folder.'
         }
     )
     test_file: Optional[str] = field(
-        default='datasets/finetune/example/test/test_data.json',
+        default='datasets/finetune/dataset/test/test_data.json',
         metadata={
             # 测试集保存的路径。
             'help': 'The test file.'
@@ -472,7 +472,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         }
     )
     lora_target: Optional[str] = field(
-        default='query_key_value',
+        default='c_attn,c_proj',
         metadata={
             'help': "Name(s) of target modules to use cpm Quantize. Use comma to separate multiple modules.\
             ChatGLM choices: [\"query_key_value\", \"self_attention.dense\", \"dense_h_to_4h\", \"dense_4h_to_h\"], \

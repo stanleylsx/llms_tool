@@ -46,7 +46,6 @@ class Predictor(BaseModels):
         def predict(input, chatbot, history, max_new_tokens, top_p, temperature):
             chatbot.append((parse_text(input), ''))
             prompt_template = self.prompt_template.get_prompt(input, history)
-            print(prompt_template)
             input_ids = self.tokenizer([prompt_template], return_tensors='pt')['input_ids']
             input_ids = input_ids.to(self.model.device)
             streamer = TextIteratorStreamer(self.tokenizer, timeout=60.0, skip_prompt=True, skip_special_tokens=True)

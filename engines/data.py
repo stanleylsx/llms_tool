@@ -47,6 +47,8 @@ class DataManager:
                 'bos_token': '<sop>',
                 'unk_token': '<unk>',
             })
+        if self.model_args.model_type == 'qwen':
+            tokenizer.pad_token = tokenizer.eos_token
         return tokenizer
 
     def load_datasets(self):

@@ -177,7 +177,7 @@ class Template:
             """
             self.prefix = '<|im_start|>system\nYou are a helpful assistant.'
             self.prompt = '<|im_start|>user\n{query}<|im_end|>\n<|im_start|>assistant\n'
-            self.sep = '\n'
+            self.sep = '<|im_end|>\n'
             self.use_history = True
         else:
             raise ValueError('Template {} does not exist.'.format(self.prompt_template))
