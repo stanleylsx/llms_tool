@@ -20,13 +20,14 @@ class DataManager:
         self.prompt_template = Template(self.data_args.prompt_template)
         logger.info(f'Load tokenizer: {self.model_args.model_path}')
         self.tokenizer = self.load_tokenizer(self.model_args.model_path)
+        self.logger.info(f'Tokenizer: {self.tokenizer}')
         if self.data_args.ignore_pad_token_for_loss:
             self.label_pad_token_id = -100
         else:
             self.label_pad_token_id = self.tokenizer.pad_token_id
 
     def load_tokenizer(self, model_path):
-        if self.model_args.model_type in ['chatglm', 'baichuan', 'internlm', 'aquila', 'moss']:
+        if self.model_args.model_type in ['chatglm', 'baichuan', 'internlm', 'aquila', 'moss', 'qwen']:
             tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
         elif self.model_args.model_type == 'falcon':
             tokenizer = AutoTokenizer.from_pretrained(model_path, padding_side=self.model_args.padding_side)
@@ -46,8 +47,8 @@ class DataManager:
                 'bos_token': '<sop>',
                 'unk_token': '<unk>',
             })
-        if tokenizer.pad_token is None:
-            tokenizer.pad_token_id = 0
+        if self.model_args.model_type == 'qwen':
+            tokenizer.pad_token = tokenizer.eos_token
         return tokenizer
 
     def load_datasets(self):
@@ -92,7 +93,7 @@ class DataManager:
             if examples['instruction'][i] and examples['output'][i]:
                 query, answer = examples['instruction'][i], examples['output'][i]
                 query = query + examples['input'][i] if examples['input'][i] else query
-                if (history := examples['history'][i]) is not None:
+                if 'history' in examples and (history := examples['history'][i]) is not None:
                     prompt = self.prompt_template.get_prompt(query, history)
                 else:
                     prompt = self.prompt_template.get_prompt(query, [])

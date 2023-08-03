@@ -1,4 +1,4 @@
-# LLMs Tool  
+# LLMs Tool
 ![Authour](https://img.shields.io/badge/Author-StanleyLsx-red.svg) 
 [![License Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 ![python_version](https://img.shields.io/badge/Python-3.10%2B-green.svg)
@@ -34,6 +34,7 @@ Model   | Scale        | Series
 :-------|--------------|--------
 ChatGLM1| 6B           |[chatglm1](https://huggingface.co/THUDM/chatglm-6b)
 ChatGLM2| 6B           |[chatglm2](https://huggingface.co/THUDM/chatglm2-6bb)
+Qwen    | 7B           |[Qwen](https://huggingface.co/Qwen)
 Bloom   | 560M、9B、7B1M |[bloom](https://huggingface.co/bigscience/bloom)、[bloomz](https://huggingface.co/bigscience/bloomz)
 LLama1  | 3B、7B、13B    |[openllama](https://huggingface.co/openlm-research)、[chinese-alpaca](https://github.com/ymcui/Chinese-LLaMA-Alpaca)、[ziya](https://huggingface.co/IDEA-CCNL)
 LLama2  | 7B、13B       |[llama2](https://huggingface.co/meta-llama)
@@ -86,7 +87,7 @@ model_type: str = field(
     metadata={
         # 模型类型
         'help': 'Model type.',
-        'choices': ['chatglm', 'llama', 'falcon', 'baichuan', 'aquila', 'internlm', 'moss', 'bloom', 'rwkv'],
+        'choices': ['chatglm', 'qwen', 'llama', 'falcon', 'baichuan', 'aquila', 'internlm', 'moss', 'bloom', 'rwkv'],
     }
 )
 model_path: str = field(

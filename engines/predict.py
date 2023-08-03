@@ -48,8 +48,7 @@ class Predictor(BaseModels):
             prompt_template = self.prompt_template.get_prompt(input, history)
             input_ids = self.tokenizer([prompt_template], return_tensors='pt')['input_ids']
             input_ids = input_ids.to(self.model.device)
-            streamer = TextIteratorStreamer(self.tokenizer, timeout=60.0, skip_prompt=True,
-                                            skip_special_tokens=True)
+            streamer = TextIteratorStreamer(self.tokenizer, timeout=60.0, skip_prompt=True, skip_special_tokens=True)
             gen_kwargs = self.generating_args.to_dict()
             gen_kwargs = self.generating_args_preprocess(gen_kwargs)
             gen_kwargs.update({

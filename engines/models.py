@@ -6,6 +6,7 @@
 # @Software: PyCharm
 from transformers import AutoModel, LlamaForCausalLM, BloomForCausalLM, AutoModelForCausalLM, RwkvForCausalLM
 from transformers import BitsAndBytesConfig
+from transformers import PreTrainedModel
 from transformers.generation.utils import GenerationConfig
 from accelerate import infer_auto_device_map, dispatch_model
 from engines.utils.glm_multi_gpus import auto_configure_device_map
@@ -13,6 +14,7 @@ from engines.utils.print_parameters import summary
 from engines.utils.cpm_quantizer import QuantizedLinear
 from peft.utils import CONFIG_NAME, WEIGHTS_NAME
 from peft import PeftModel
+from types import MethodType
 import os
 import re
 import torch
@@ -78,7 +80,7 @@ class BaseModels:
             model.tie_weights()
             device_map = auto_configure_device_map(torch.cuda.device_count(), model)
             model = dispatch_model(model, device_map=device_map)
-        elif self.model_args.model_type in ['falcon', 'baichuan', 'aquila', 'internlm', 'moss']:
+        elif self.model_args.model_type in ['falcon', 'baichuan', 'aquila', 'internlm', 'moss', 'qwen']:
             if self.model_args.quantization_bit is not None and self.model_args.quantization == 'cpm':
                 model = AutoModelForCausalLM.from_pretrained(
                     model_to_load,
@@ -98,6 +100,8 @@ class BaseModels:
                     trust_remote_code=True,
                     torch_dtype=self.model_args.torch_dtype,
                     **config_kwargs)
+            if self.model_args.model_type == 'qwen':
+                model.generate = MethodType(PreTrainedModel.generate, model)
         elif self.model_args.model_type == 'rwkv':
             model = RwkvForCausalLM.from_pretrained(model_to_load, device_map='auto')
         elif self.model_args.model_type == 'llama':

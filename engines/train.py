@@ -10,6 +10,7 @@ from peft import LoraConfig, AdaLoraConfig, PromptTuningConfig, PromptEncoderCon
 from peft import TaskType, get_peft_model
 from engines.utils.trainer import MySeq2SeqTrainer
 from transformers import DataCollatorForSeq2Seq
+from trl import AutoModelForCausalLMWithValueHead, AutoModelForSeq2SeqLMWithValueHead
 import torch
 import math
 
@@ -26,14 +27,14 @@ class Train(BaseModels):
         self.qlore = False
         self.logger = logger
 
-    def supervised_fine_tuning(self):
+    def construct_base_model(self):
         self.logger.info(f'Fine tuning type: {self.training_args.fine_tuning_type}')
         if self.training_args.fine_tuning_type == 'full':
             if self.model_args.quantization_bit is not None:
                 raise ValueError('Full-parameter fine-tuning does not support quantization.')
             self.logger.info('Full-parameters training.')
             self.model = self.model.float()
-            print_trainable_parameters(self.model)
+            print_trainable_parameters(self.model, logger=self.logger)
         elif self.training_args.fine_tuning_type == 'lora':
             self.logger.info('Init new peft model.')
             if self.model_args.quantization_bit is None:
@@ -110,7 +111,9 @@ class Train(BaseModels):
             self.model.gradient_checkpointing_disable()
             self.model = get_peft_model(self.model, peft_config)
             self.model.print_trainable_parameters()
-        self.logger.info(f'Tokenizer: {self.data_manager.tokenizer}')
+
+    def supervised_fine_tuning(self):
+        self.construct_base_model()
         self.logger.info(f'Model struct:\n{self.model}')
 
         train_dataset, eval_dataset = self.data_manager.prepare_supervised_fine_tuning_dataset()
@@ -165,3 +168,19 @@ class Train(BaseModels):
             self.logger.info(f'Evaluating metrics: {metrics}')
             trainer.log_metrics('eval', metrics)
             trainer.save_metrics('eval', metrics)
+
+    def train_reward_model(self):
+        self.construct_base_model()
+        support_putput_names = AutoModelForCausalLMWithValueHead.lm_head_namings
+        putput_layer_name = list(self.model.named_modules())[-1][0].split('.')[-1]
+        if putput_layer_name not in support_putput_names:
+            support_putput_names.append(putput_layer_name)
+        if self.model_args.model_type == 'chatglm' and any(
+                key.endswith('rotary_pos_emb') for key, _ in self.model.named_modules()):
+            self.model.lm_head = self.model.transformer.output_layer
+        self.model = AutoModelForCausalLMWithValueHead.from_pretrained(self.model)
+        self.logger.info(f'Model struct:\n{self.model}')
+        self.model.print_trainable_parameters()
+        pass
+
+

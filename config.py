@@ -21,15 +21,15 @@ class ModelArguments:
     Arguments pertaining to which model/config/tokenizer we are going to fine-tune.
     """
     model_type: str = field(
-        default='chatglm',
+        default='qwen',
         metadata={
             # 模型类型
             'help': 'Model type.',
-            'choices': ['chatglm', 'llama', 'falcon', 'baichuan', 'aquila', 'internlm', 'moss', 'bloom', 'rwkv'],
+            'choices': ['chatglm', 'qwen', 'llama', 'falcon', 'baichuan', 'aquila', 'internlm', 'moss', 'bloom', 'rwkv'],
         }
     )
     model_path: str = field(
-        default='D:\projects\LLM_models\LLM_chat_models\chatglm2-6b',
+        default='D:\projects\LLM_models\LLM_chat_models\Qwen-7B-Chat',
         metadata={
             # 从huggingface.co/models上下载的模型保存到本地的路径。
             'help': 'Local path to pretrained model or model identifier from huggingface.co/models.'
@@ -105,7 +105,7 @@ class ModelArguments:
         }
     )
     cpm_quantization_target: Optional[str] = field(
-        default='query_key_value',
+        default='q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj',
         metadata={
             # 需要对这个模型里面的哪些线性层进行量化？
             'help': "Name(s) of target modules to use cpm Quantize. Use comma to separate multiple modules.\
@@ -115,18 +115,19 @@ class ModelArguments:
             LLaMA choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"],\
             InternLM choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"up_proj\", \"down_proj\"] \
             Aquila choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"] \
-            Baichuan choices: [\"W_pack\", \"o_proj\", \"gate_proj\", \"up_proj\", \"down_proj\"]",
+            Baichuan choices: [\"W_pack\", \"o_proj\", \"gate_proj\", \"up_proj\", \"down_proj\"] \
+            Qwen choices: [\"c_attn\", \"c_proj\", \"w1\", \"w2\"]"
         }
     )
     gradio_port: Optional[int] = field(
-        default=1234,
+        default=7777,
         metadata={
             # 使用web_inference进行交互时候，网页的端口号。
             'help': 'The port id of gradio.'
         }
     )
     quantized_or_merged_output_dir: Optional[str] = field(
-        default=None,
+        default='/home/mailai/datahub/llm/internlm-8k-8b',
         metadata={
             # 当你想保存量化后的模型或者融合后的模型时，处理后的模型保存的地址。
             'help': 'Path to save the quantized or merged model checkpoints as well as the configurations manually.',
@@ -153,21 +154,21 @@ class DataTrainingArguments:
     Arguments pertaining to what data we are going to input our model for training and evaluation.
     """
     train_file_dir: Optional[str] = field(
-        default='datasets/finetune/example/train',
+        default='datasets/finetune/dataset/train',
         metadata={
             # 训练集保存的路径。
             'help': 'The train json data file folder.'
         }
     )
     validation_file_dir: Optional[str] = field(
-        default='datasets/finetune/example/test',
+        default='datasets/finetune/dataset/test',
         metadata={
             # 验证集保存的路径。
             'help': 'The evaluation json file folder.'
         }
     )
     test_file: Optional[str] = field(
-        default='datasets/finetune/example/test/test_data.json',
+        default='datasets/finetune/dataset/test/test_data.json',
         metadata={
             # 测试集保存的路径。
             'help': 'The test file.'
@@ -181,12 +182,12 @@ class DataTrainingArguments:
         }
     )
     prompt_template: Optional[str] = field(
-        default='chatglm',
+        default='qwen',
         metadata={
             # 选择对应模型的模板prompt，一般Chat模型的出品方都会有一个固定的prompt。
             'help': 'Which template to use for constructing prompts in training and inference.',
             'choices': ['default', 'vanilla', 'alpaca', 'vicuna', 'belle', 'linly', 'billa', 'ziya', 'aquila',
-                        'firefly', 'openbuddy', 'internlm', 'baichuan', 'chatglm', 'moss', 'rwkv', 'linksoul']
+                        'firefly', 'openbuddy', 'internlm', 'baichuan', 'chatglm', 'qwen', 'moss', 'rwkv', 'linksoul']
         }
     )
     overwrite_cache: Optional[bool] = field(
@@ -471,7 +472,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         }
     )
     lora_target: Optional[str] = field(
-        default='query_key_value',
+        default='c_attn,c_proj',
         metadata={
             'help': "Name(s) of target modules to use cpm Quantize. Use comma to separate multiple modules.\
             ChatGLM choices: [\"query_key_value\", \"self_attention.dense\", \"dense_h_to_4h\", \"dense_4h_to_h\"], \
@@ -480,7 +481,8 @@ class TrainingArguments(Seq2SeqTrainingArguments):
             LLaMA choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"],\
             InternLM choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"up_proj\", \"down_proj\"] \
             Aquila choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"] \
-            Baichuan choices: [\"W_pack\", \"o_proj\", \"gate_proj\", \"up_proj\", \"down_proj\"]"
+            Baichuan choices: [\"W_pack\", \"o_proj\", \"gate_proj\", \"up_proj\", \"down_proj\"] \
+            Qwen choices: [\"c_attn\", \"c_proj\", \"w1\", \"w2\"]"
         }
     )
     # prompt_tuning:

@@ -171,6 +171,14 @@ class Template:
             self.prompt = '{query}[/INST]'
             self.sep = '</s><s> [INST]'
             self.use_history = True
+        elif self.prompt_template == 'qwen':
+            r"""
+            Supports: https://huggingface.co/Qwen/Qwen-7B-Chat
+            """
+            self.prefix = '<|im_start|>system\nYou are a helpful assistant.'
+            self.prompt = '<|im_start|>user\n{query}<|im_end|>\n<|im_start|>assistant\n'
+            self.sep = '<|im_end|>\n'
+            self.use_history = True
         else:
             raise ValueError('Template {} does not exist.'.format(self.prompt_template))
 
@@ -188,7 +196,10 @@ class Template:
         for turn_idx, (user_query, bot_resp) in enumerate(history):
             if self.prompt_template == 'chatglm':
                 prompt = self.prompt.format(query=user_query)
-                conversations.append(prefix.format(turn_idx + 1) + prompt)
+                current_prefix = prefix.format(turn_idx + 1)
+                if turn_idx + 1 > 1:
+                    current_prefix = '\n\n' + current_prefix
+                conversations.append(current_prefix + prompt)
                 conversations.append(bot_resp)
             else:
                 if turn_idx == 0:

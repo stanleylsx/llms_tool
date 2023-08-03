@@ -28,7 +28,8 @@ if __name__ == '__main__':
         train.supervised_fine_tuning()
     elif mode == 'train_reward_model':
         # 奖励模型训练
-        pass
+        train = Train(data_manager, config, logger)
+        train.train_reward_model()
     elif mode == 'train_ppo_model':
         # 奖励模型强化训练
         pass
