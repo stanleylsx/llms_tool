@@ -27,7 +27,7 @@ class MySeq2SeqTrainer(Seq2SeqTrainer):
         else:
             padded_tensor[:, :left.shape[-1]] = left
         return padded_tensor
-    
+
 
 class MyRewardTraining(Seq2SeqTrainer):
     def compute_loss(self, model, inputs, return_outputs):
