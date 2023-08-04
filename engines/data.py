@@ -8,6 +8,7 @@ from transformers import AutoTokenizer, LlamaTokenizer, BloomTokenizerFast
 from engines.utils.prompt_template import Template
 from datasets import load_dataset
 from glob import glob
+from config import mode
 import os
 
 
@@ -59,7 +60,7 @@ class DataManager:
                 f'{self.data_args.train_file_dir}/**/*.jsonl', recursive=True)
             self.logger.info(f"train files: {', '.join(train_data_files)}")
             data_files['train'] = train_data_files
-        if self.training_args.do_predict and self.data_args.validation_file_dir is not None \
+        if self.training_args.do_eval and self.data_args.validation_file_dir is not None \
                 and os.path.exists(self.data_args.validation_file_dir):
             eval_data_files = glob(
                 f'{self.data_args.validation_file_dir}/**/*.json', recursive=True) + glob(
@@ -71,7 +72,7 @@ class DataManager:
             data_files=data_files,
             cache_dir=self.model_args.cache_dir,
         )
-        if self.training_args.do_predict and 'validation' not in raw_datasets.keys() \
+        if self.training_args.do_eval and 'validation' not in raw_datasets.keys() \
                 and self.data_args.dev_ratio > 0.0:
             raw_datasets['validation'] = load_dataset(
                 'json',
@@ -105,7 +106,7 @@ class DataManager:
         # Baichuan: https://huggingface.co/baichuan-inc/Baichuan-13B-Chat/blob/main/tokenization_baichuan.py#L152
         # internlm: https://huggingface.co/internlm/internlm-chat-7b/blob/main/tokenization_internlm.py#L179
         # moss: https://huggingface.co/fnlp/moss-moon-003-sft/blob/main/tokenization_moss.py#L226
-        # Llama: https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/tokenization_llama.py#L253
+        # Llama: https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/tokenization_llama.py#L255
         inputs_list = []
         labels_list = []
         for prompt, answer in self.format_example(examples):
@@ -151,34 +152,91 @@ class DataManager:
             labels_list.append(labels)
         return {'input_ids': inputs_list, 'labels': labels_list}
 
-    def prepare_supervised_fine_tuning_dataset(self):
+    def preprocess_train_reward_model_dataset(self, examples):
+        accept_list, reject_list = [], []
+        for prompt, answer in self.format_example(examples):
+            if self.model_args.model_type in ('chatglm', 'baichuan', 'internlm', 'moss', 'llama'):
+                source_ids = self.tokenizer.encode(text=prompt, add_special_tokens=False)
+                accept_ids = self.tokenizer.encode(text=answer[0], add_special_tokens=False)
+                reject_ids = self.tokenizer.encode(text=answer[1], add_special_tokens=False)
+                accept_ids = self.tokenizer.build_inputs_with_special_tokens(source_ids, accept_ids)
+                reject_ids = self.tokenizer.build_inputs_with_special_tokens(source_ids, reject_ids)
+            else:
+                source_ids = self.tokenizer.encode(text=prompt, add_special_tokens=True)
+                accept_ids = self.tokenizer.encode(text=answer[0], add_special_tokens=True)
+                reject_ids = self.tokenizer.encode(text=answer[1], add_special_tokens=True)
+                if self.tokenizer.bos_token_id is not None:
+                    source_ids = [self.tokenizer.bos_token_id] + source_ids
+                accept_ids = source_ids + accept_ids + [self.tokenizer.eos_token_id]
+                reject_ids = source_ids + reject_ids + [self.tokenizer.eos_token_id]
+            if len(accept_ids) > self.data_args.max_input_token or len(reject_ids) > self.data_args.max_input_token:
+                self.logger.warning(f'The token length of some sentences exceeds {self.data_args.max_input_token}.')
+            accept_list.append(accept_ids)
+            reject_list.append(reject_ids)
+        return {'accept_ids': accept_list, 'reject_ids': reject_list}
+
+    def prepare_dataset(self):
+
+        def propocess_dataset(process_func, dataset, tag):
+            with self.training_args.main_process_first(desc=f'Handle {tag} dataset.'):
+                if tag == 'train':
+                    dataset = dataset.shuffle()
+                dataset = dataset.map(
+                    process_func,
+                    batched=True,
+                    num_proc=self.data_args.preprocessing_num_workers,
+                    remove_columns=dataset.column_names,
+                    load_from_cache_file=not self.data_args.overwrite_cache,
+                    desc=f'Running tokenizer on {tag} dataset'
+                )
+                return dataset
+
         raw_datasets = self.load_datasets()
         train_dataset = raw_datasets['train']
-        with self.training_args.main_process_first(desc='Handle validation dataset.'):
-            train_dataset = train_dataset.shuffle().map(
-                self.preprocess_train_supervised_fine_tuning_dataset,
-                batched=True,
-                num_proc=self.data_args.preprocessing_num_workers,
-                remove_columns=train_dataset.column_names,
-                load_from_cache_file=not self.data_args.overwrite_cache,
-                desc='Running tokenizer on train dataset'
-            )
-            self.logger.debug(f'Train dataset nums: {len(train_dataset)}')
+        if mode == 'train_supervised_fine_tuning':
+            train_dataset = propocess_dataset(self.preprocess_train_supervised_fine_tuning_dataset, train_dataset, 'train')
+        elif mode == 'train_reward_model':
+            train_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, train_dataset, 'train')
+        self.logger.debug(f'Train dataset nums: {len(train_dataset)}')
 
         eval_dataset = None
         if self.training_args.do_eval:
             if 'validation' not in raw_datasets.keys():
                 raise ValueError('do_eval requires a validation dataset')
             eval_dataset = raw_datasets['validation']
-
-            with self.training_args.main_process_first(desc='Handle validation dataset.'):
-                eval_dataset = eval_dataset.map(
-                    self.preprocess_eval_supervised_fine_tuning_dataset,
-                    batched=True,
-                    num_proc=self.data_args.preprocessing_num_workers,
-                    remove_columns=eval_dataset.column_names,
-                    load_from_cache_file=not self.data_args.overwrite_cache,
-                    desc='Running tokenizer on validation dataset'
-                )
-                self.logger.debug(f'Validation dataset nums: {len(eval_dataset)}')
+            if mode == 'train_supervised_fine_tuning':
+                eval_dataset = propocess_dataset(self.preprocess_eval_supervised_fine_tuning_dataset, eval_dataset, 'validation')
+            elif mode == 'train_reward_model':
+                eval_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, eval_dataset, 'validation')
+            self.logger.debug(f'Validation dataset nums: {len(eval_dataset)}')
         return train_dataset, eval_dataset
+
+
+class DataCollatorForRewardModelTraining:
+    def __init__(self, tokenizer, return_tensors):
+        self.tokenizer = tokenizer
+        self.return_tensors = return_tensors
+
+    def __call__(self, features):
+        features_accept = []
+        features_reject = []
+        for feature in features:
+            features_accept.append({'input_ids': feature['accept_ids'], 'attention_mask': [1] * len(feature['accept_ids'])})
+            features_reject.append({'input_ids': feature['reject_ids'], 'attention_mask': [1] * len(feature['reject_ids'])})
+
+        batch_accept = self.tokenizer.pad(
+            features_accept,
+            return_tensors=self.return_tensors,
+        )
+        batch_reject = self.tokenizer.pad(
+            features_reject,
+            return_tensors=self.return_tensors,
+        )
+        batch = {
+            'accept_ids': batch_accept['input_ids'],
+            'accept_attention_mask': batch_accept['attention_mask'],
+            'reject_ids': batch_reject['input_ids'],
+            'reject_attention_mask': batch_reject['attention_mask'],
+
+        }
+        return batch

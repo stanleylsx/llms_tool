@@ -27,3 +27,12 @@ class MySeq2SeqTrainer(Seq2SeqTrainer):
         else:
             padded_tensor[:, :left.shape[-1]] = left
         return padded_tensor
+
+
+class MyRewardTraining(Seq2SeqTrainer):
+    def compute_loss(self, model, inputs, return_outputs):
+        batch_size = inputs['input_ids'].size(0) // 2
+        _, _, values = model(**inputs, output_hidden_states=True, return_dict=True)
+        r_accept, r_reject = values[:, -1].split(batch_size, dim=0)
+        loss = -torch.nn.functional.logsigmoid(r_accept - r_reject).mean()
+        return (loss, [loss, r_accept, r_reject]) if return_outputs else loss

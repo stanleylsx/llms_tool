@@ -8,9 +8,10 @@ from engines.models import BaseModels
 from engines.utils.print_parameters import print_trainable_parameters
 from peft import LoraConfig, AdaLoraConfig, PromptTuningConfig, PromptEncoderConfig, PrefixTuningConfig
 from peft import TaskType, get_peft_model
-from engines.utils.trainer import MySeq2SeqTrainer
+from engines.utils.trainer import MySeq2SeqTrainer, MyRewardTraining
 from transformers import DataCollatorForSeq2Seq
-from trl import AutoModelForCausalLMWithValueHead, AutoModelForSeq2SeqLMWithValueHead
+from engines.data import DataCollatorForRewardModelTraining
+from trl import AutoModelForCausalLMWithValueHead
 import torch
 import math
 
@@ -112,12 +113,7 @@ class Train(BaseModels):
             self.model = get_peft_model(self.model, peft_config)
             self.model.print_trainable_parameters()
 
-    def supervised_fine_tuning(self):
-        self.construct_base_model()
-        self.logger.info(f'Model struct:\n{self.model}')
-
-        train_dataset, eval_dataset = self.data_manager.prepare_supervised_fine_tuning_dataset()
-
+    def set_train_env(self):
         if self.training_args.gradient_checkpointing:
             self.model.gradient_checkpointing_enable()
             self.model.config.use_cache = False
@@ -133,6 +129,13 @@ class Train(BaseModels):
             # Keeps Trainer from trying its own DataParallelism when more than 1 gpu is available
             self.model.is_parallelizable = True
             self.model.model_parallel = True
+
+    def supervised_fine_tuning(self):
+        self.construct_base_model()
+        self.logger.info(f'Model struct:\n{self.model}')
+        self.set_train_env()
+
+        train_dataset, eval_dataset = self.data_manager.prepare_dataset()
 
         data_collator = DataCollatorForSeq2Seq(
             tokenizer=self.tokenizer,
@@ -180,7 +183,18 @@ class Train(BaseModels):
             self.model.lm_head = self.model.transformer.output_layer
         self.model = AutoModelForCausalLMWithValueHead.from_pretrained(self.model)
         self.logger.info(f'Model struct:\n{self.model}')
-        self.model.print_trainable_parameters()
-        pass
-
-
+        print_trainable_parameters(self.model, self.logger)
+        self.set_train_env()
+        train_dataset, eval_dataset = self.data_manager.prepare_dataset()
+        data_collator = DataCollatorForRewardModelTraining(tokenizer=self.tokenizer, return_tensors='pt')
+        self.training_args.remove_unused_columns = False
+        trainer = MyRewardTraining(
+            model=self.model,
+            args=self.training_args,
+            train_dataset=train_dataset if self.training_args.do_train else None,
+            tokenizer=self.tokenizer,
+            data_collator=data_collator,
+        )
+        train_result = trainer.train()
+        trainer.log_metrics("train", train_result.metrics)
+        trainer.save_metrics("train", train_result.metrics)
