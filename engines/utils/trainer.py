@@ -29,10 +29,17 @@ class MySeq2SeqTrainer(Seq2SeqTrainer):
         return padded_tensor
 
 
-class MyRewardTraining(Seq2SeqTrainer):
-    def compute_loss(self, model, inputs, return_outputs):
-        batch_size = inputs['input_ids'].size(0) // 2
+class MyRewardTrainer(Seq2SeqTrainer):
+    def __init__(self, model_type, **kwargs):
+        super().__init__(**kwargs)
+        # self.can_return_loss = True
+        self.model_type = model_type
+
+    def compute_loss(self, model, inputs, return_outputs=False):
+        batch_size = int(inputs['input_ids'].size(0) / 2)
         _, _, values = model(**inputs, output_hidden_states=True, return_dict=True)
-        r_accept, r_reject = values[:, -1].split(batch_size, dim=0)
+        if self.model_type in ['qwen', 'chatglm']:
+            values = torch.transpose(values, 1, 0)
+        r_accept, r_reject = values.split(batch_size, dim=0)
         loss = -torch.nn.functional.logsigmoid(r_accept - r_reject).mean()
         return (loss, [loss, r_accept, r_reject]) if return_outputs else loss

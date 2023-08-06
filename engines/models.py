@@ -140,14 +140,10 @@ class BaseModels:
                     **config_kwargs)
         else:
             raise
-        try:
+
+        if os.path.exists(model_to_load + '/generation_config.json'):
             model.generation_config = GenerationConfig.from_pretrained(model_to_load)
-        except OSError:
-            self.logger.info('generation_config.json does not appear in local files.')
-            return model
-        else:
-            self.logger.info('Loading local generation_config.json file.')
-            return model
+        return model
 
     def load_adapter(self, model):
         if self.training_args.fine_tuning_type in (

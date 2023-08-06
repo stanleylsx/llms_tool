@@ -21,15 +21,16 @@ class ModelArguments:
     Arguments pertaining to which model/config/tokenizer we are going to fine-tune.
     """
     model_type: str = field(
-        default='qwen',
+        default='chatglm',
         metadata={
             # 模型类型
             'help': 'Model type.',
-            'choices': ['chatglm', 'qwen', 'llama', 'falcon', 'baichuan', 'aquila', 'internlm', 'moss', 'bloom', 'rwkv'],
+            'choices': ['chatglm', 'qwen', 'llama', 'falcon', 'baichuan', 'aquila',
+                        'internlm', 'moss', 'bloom', 'rwkv'],
         }
     )
     model_path: str = field(
-        default='D:\projects\LLM_models\LLM_chat_models\Qwen-7B-Chat',
+        default='D:\projects\LLM_models\LLM_chat_models\chatglm2-6b',
         metadata={
             # 从huggingface.co/models上下载的模型保存到本地的路径。
             'help': 'Local path to pretrained model or model identifier from huggingface.co/models.'
@@ -57,7 +58,7 @@ class ModelArguments:
         }
     )
     padding_side: Optional[str] = field(
-        default='right',
+        default='left',
         metadata={
             # 有些模型该参数由相应的tokenizer_config.json文件提供，没有的要自己提供。
             'help': 'Padding side.',
@@ -154,14 +155,14 @@ class DataTrainingArguments:
     Arguments pertaining to what data we are going to input our model for training and evaluation.
     """
     train_file_dir: Optional[str] = field(
-        default='datasets/finetune/dataset/train',
+        default='datasets/rm/example/train',
         metadata={
             # 训练集保存的路径。
             'help': 'The train json data file folder.'
         }
     )
     validation_file_dir: Optional[str] = field(
-        default='datasets/finetune/dataset/test',
+        default='datasets/rm/example/eval',
         metadata={
             # 验证集保存的路径。
             'help': 'The evaluation json file folder.'
@@ -182,7 +183,7 @@ class DataTrainingArguments:
         }
     )
     prompt_template: Optional[str] = field(
-        default='qwen',
+        default='chatglm',
         metadata={
             # 选择对应模型的模板prompt，一般Chat模型的出品方都会有一个固定的prompt。
             'help': 'Which template to use for constructing prompts in training and inference.',
@@ -241,7 +242,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         }
     )
     do_eval: bool = field(
-        default=False,
+        default=True,
         metadata={
             'help': 'Whether to run eval on the dev set.'
         }
@@ -271,7 +272,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         }
     )
     resume_from_checkpoint: Optional[Union[str, bool]] = field(
-        default=True,
+        default=False,
         metadata={
             'help': 'Continue train model from your checkpoint.'
         }
@@ -472,7 +473,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         }
     )
     lora_target: Optional[str] = field(
-        default='c_attn,c_proj',
+        default='query_key_value',
         metadata={
             'help': "Name(s) of target modules to use cpm Quantize. Use comma to separate multiple modules.\
             ChatGLM choices: [\"query_key_value\", \"self_attention.dense\", \"dense_h_to_4h\", \"dense_4h_to_h\"], \
