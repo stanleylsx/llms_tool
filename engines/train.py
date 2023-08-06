@@ -6,9 +6,10 @@
 # @Software: PyCharm
 from engines.models import BaseModels
 from engines.utils.print_parameters import print_trainable_parameters
+from engines.utils.metrics import Metrics
 from peft import LoraConfig, AdaLoraConfig, PromptTuningConfig, PromptEncoderConfig, PrefixTuningConfig
 from peft import TaskType, get_peft_model
-from engines.utils.trainer import MySeq2SeqTrainer, MyRewardTraining
+from engines.utils.trainer import MySeq2SeqTrainer, MyRewardTrainer
 from transformers import DataCollatorForSeq2Seq
 from engines.data import DataCollatorForRewardModelTraining
 from trl import AutoModelForCausalLMWithValueHead
@@ -27,6 +28,7 @@ class Train(BaseModels):
             'lora', 'full', 'adalora', 'prompt_tuning', 'p_tuning', 'prefix_tuning'], 'Invalid fine-tuning method.'
         self.qlore = False
         self.logger = logger
+        self.metrics = Metrics(data_manager, logger)
 
     def construct_base_model(self):
         self.logger.info(f'Fine tuning type: {self.training_args.fine_tuning_type}')
@@ -188,13 +190,35 @@ class Train(BaseModels):
         train_dataset, eval_dataset = self.data_manager.prepare_dataset()
         data_collator = DataCollatorForRewardModelTraining(tokenizer=self.tokenizer, return_tensors='pt')
         self.training_args.remove_unused_columns = False
-        trainer = MyRewardTraining(
+        trainer = MyRewardTrainer(
+            model_type=self.model_args.model_type,
             model=self.model,
             args=self.training_args,
             train_dataset=train_dataset if self.training_args.do_train else None,
             tokenizer=self.tokenizer,
             data_collator=data_collator,
+            compute_metrics=self.metrics.computer_training_reward_metric
         )
-        train_result = trainer.train()
-        trainer.log_metrics("train", train_result.metrics)
-        trainer.save_metrics("train", train_result.metrics)
+        checkpoint = None
+        if self.training_args.resume_from_checkpoint:
+            checkpoint = self.model_args.checkpoint_dir
+        self.logger.info('*** Start training. ***')
+        train_result = trainer.train(resume_from_checkpoint=checkpoint)
+        metrics = train_result.metrics
+        self.logger.info(f'Training metrics: {metrics}')
+        trainer.log_metrics('train', metrics)
+        trainer.save_metrics('train', metrics)
+        trainer.save_state()
+        trainer.save_model()
+
+        if self.training_args.do_eval and eval_dataset:
+            self.logger.info('*** Start evaluating. ***')
+            metrics = trainer.evaluate(eval_dataset)
+            try:
+                perplexity = math.exp(metrics['eval_loss'])
+            except OverflowError:
+                perplexity = float('inf')
+            metrics['perplexity'] = perplexity
+            self.logger.info(f'Evaluating metrics: {metrics}')
+            trainer.log_metrics('eval', metrics)
+            trainer.save_metrics('eval', metrics)

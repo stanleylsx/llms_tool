@@ -5,6 +5,7 @@
 # @File : metrics.py
 # @Software: PyCharm
 from rouge_chinese import Rouge
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 import numpy as np
 import jieba
 
@@ -16,7 +17,7 @@ class Metrics:
         self.rouge = Rouge()
         self.logger = logger
 
-    def computer_metric(self, preds, labels):
+    def computer_supervised_fine_tuning_metric(self, preds, labels):
         score_dict = {'rouge-1': [], 'rouge-2': [], 'rouge-l': []}
         for pred, label in zip(preds, labels):
             hypothesis = list(jieba.cut(pred))
@@ -32,3 +33,14 @@ class Metrics:
         for k, v in score_dict.items():
             metric_results[k] = float(np.mean(v))
         return metric_results
+
+    @staticmethod
+    def computer_training_reward_metric(preds, labels):
+        # MSE
+        mse = mean_squared_error(labels, preds)
+        # MAE
+        mae = mean_absolute_error(labels, preds)
+        # accuracy
+        accuracy = (preds[0] > preds[1]).sum() / len(preds[0])
+
+        return {'mse': mse, 'mae': mae, 'accuracy': accuracy}

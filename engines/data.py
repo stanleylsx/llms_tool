@@ -5,6 +5,7 @@
 # @File : data.py
 # @Software: PyCharm
 from transformers import AutoTokenizer, LlamaTokenizer, BloomTokenizerFast
+from transformers import DataCollatorWithPadding
 from engines.utils.prompt_template import Template
 from datasets import load_dataset
 from glob import glob
@@ -50,6 +51,9 @@ class DataManager:
             })
         if self.model_args.model_type == 'qwen':
             tokenizer.pad_token = tokenizer.eos_token
+        if tokenizer.pad_token_id is None:
+            tokenizer.pad_token_id = 0
+
         return tokenizer
 
     def load_datasets(self):
@@ -212,31 +216,14 @@ class DataManager:
         return train_dataset, eval_dataset
 
 
-class DataCollatorForRewardModelTraining:
+class DataCollatorForRewardModelTraining(DataCollatorWithPadding):
     def __init__(self, tokenizer, return_tensors):
         self.tokenizer = tokenizer
         self.return_tensors = return_tensors
 
     def __call__(self, features):
-        features_accept = []
-        features_reject = []
-        for feature in features:
-            features_accept.append({'input_ids': feature['accept_ids'], 'attention_mask': [1] * len(feature['accept_ids'])})
-            features_reject.append({'input_ids': feature['reject_ids'], 'attention_mask': [1] * len(feature['reject_ids'])})
-
-        batch_accept = self.tokenizer.pad(
-            features_accept,
-            return_tensors=self.return_tensors,
-        )
-        batch_reject = self.tokenizer.pad(
-            features_reject,
-            return_tensors=self.return_tensors,
-        )
-        batch = {
-            'accept_ids': batch_accept['input_ids'],
-            'accept_attention_mask': batch_accept['attention_mask'],
-            'reject_ids': batch_reject['input_ids'],
-            'reject_attention_mask': batch_reject['attention_mask'],
-
-        }
-        return batch
+        features = [
+            {'input_ids': feature[key], 'attention_mask': [1] * len(feature[key])}
+            for key in ('accept_ids', 'reject_ids') for feature in features
+        ]
+        return super().__call__(features)

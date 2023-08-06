@@ -214,5 +214,5 @@ class Predictor(BaseModels):
             json.dump(results, f, ensure_ascii=False, indent=2)
         self.logger.info(f'Saved test results to {self.training_args.output_dir} + /test_results.json')
         if file_type == 'json':
-            metrics = self.metrics.computer_metric(outputs, inputs)
+            metrics = self.metrics.computer_supervised_fine_tuning_metric(outputs, inputs)
             self.logger.info(metrics)
