@@ -32,10 +32,8 @@ class Predictor(BaseModels):
 
     def generating_args_preprocess(self, gen_kwargs):
         if self.model_args.model_type == 'aquila':
-            stop_tokens = ['###', '[UNK]', '</s>']
-            bad_words_ids = [[self.tokenizer.encode(token)[0] for token in stop_tokens]]
-            eos_token_id = 100007
-            gen_kwargs['bad_words_ids'] = bad_words_ids
+            self.tokenizer.add_special_tokens({'eos_token': '###'})
+            eos_token_id = (8090, 100007)
             gen_kwargs['eos_token_id'] = eos_token_id
         elif self.model_args.model_type == 'internlm':
             eos_token_id = (2, 103028)
@@ -46,6 +44,7 @@ class Predictor(BaseModels):
         def predict(input, chatbot, history, max_new_tokens, top_p, temperature):
             chatbot.append((parse_text(input), ''))
             prompt_template = self.prompt_template.get_prompt(input, history)
+            print(prompt_template)
             if self.model_args.model_type == 'qwen':
                 input_ids = self.tokenizer([prompt_template], return_tensors='pt', allowed_special='all')['input_ids']
             else:
@@ -109,8 +108,7 @@ class Predictor(BaseModels):
             with gr.Row():
                 with gr.Column(scale=4):
                     with gr.Column(scale=12):
-                        user_input = gr.Textbox(show_label=False, placeholder='Input...', lines=10).style(
-                            container=False)
+                        user_input = gr.Textbox(show_label=False, placeholder='Input...', lines=10, container=False)
                     with gr.Column(min_width=32, scale=1):
                         submit_btn = gr.Button('Submit', variant='primary')
                 with gr.Column(scale=1):
@@ -121,7 +119,8 @@ class Predictor(BaseModels):
                                       label='Top P', interactive=True)
                     temperature = gr.Slider(0, 1.5, value=self.generating_args.temperature, step=0.01,
                                             label='Temperature', interactive=True)
-            history = gr.State([])  # (message, bot_message)
+            # (message, bot_message)
+            history = gr.State([])
             submit_btn.click(predict, [user_input, chatbot, history, max_new_tokens, top_p, temperature],
                              [chatbot, history], show_progress=True)
             submit_btn.click(reset_user_input, [], [user_input])
