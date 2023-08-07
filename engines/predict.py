@@ -44,7 +44,6 @@ class Predictor(BaseModels):
         def predict(input, chatbot, history, max_new_tokens, top_p, temperature):
             chatbot.append((parse_text(input), ''))
             prompt_template = self.prompt_template.get_prompt(input, history)
-            print(prompt_template)
             if self.model_args.model_type == 'qwen':
                 input_ids = self.tokenizer([prompt_template], return_tensors='pt', allowed_special='all')['input_ids']
             else:
