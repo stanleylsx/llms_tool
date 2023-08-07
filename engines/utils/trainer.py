@@ -32,7 +32,6 @@ class MySeq2SeqTrainer(Seq2SeqTrainer):
 class MyRewardTrainer(Seq2SeqTrainer):
     def __init__(self, model_type, **kwargs):
         super().__init__(**kwargs)
-        # self.can_return_loss = True
         self.model_type = model_type
 
     def compute_loss(self, model, inputs, return_outputs=False):

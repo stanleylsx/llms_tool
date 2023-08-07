@@ -51,6 +51,8 @@ if __name__ == '__main__':
         predictor.show_model_info()
     elif mode == 'save_quantized_model':
         # 存储量化的模型
+        if config.model_args.quantization_bit not in (4, 8):
+            raise ValueError('Quantization bit not set.')
         predictor = Predictor(data_manager, config, logger)
         predictor.save_quantized_model()
     elif mode == 'batch_test':

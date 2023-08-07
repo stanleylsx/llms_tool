@@ -43,13 +43,9 @@ class DataManager:
         else:
             raise
 
-        if tokenizer.eos_token is None:
-            tokenizer.add_special_tokens({
-                'eos_token': '</s>',
-                'bos_token': '<sop>',
-                'unk_token': '<unk>',
-            })
         if self.model_args.model_type == 'qwen':
+            tokenizer.eos_token_id = 151643
+            tokenizer.eos_token = '<|endoftext|>'
             tokenizer.pad_token = tokenizer.eos_token
         if tokenizer.pad_token_id is None:
             tokenizer.pad_token_id = 0
