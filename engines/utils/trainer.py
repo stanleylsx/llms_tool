@@ -37,7 +37,7 @@ class MyRewardTrainer(Seq2SeqTrainer):
     def compute_loss(self, model, inputs, return_outputs=False):
         batch_size = int(inputs['input_ids'].size(0) / 2)
         _, _, values = model(**inputs, output_hidden_states=True, return_dict=True)
-        if self.model_type in ['qwen', 'chatglm']:
+        if self.model_type == 'chatglm':
             values = torch.transpose(values, 1, 0)
         r_accept, r_reject = values.split(batch_size, dim=0)
         loss = -torch.nn.functional.logsigmoid(r_accept - r_reject).mean()
