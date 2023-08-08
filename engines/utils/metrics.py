@@ -5,7 +5,6 @@
 # @File : metrics.py
 # @Software: PyCharm
 from rouge_chinese import Rouge
-from sklearn.metrics import mean_squared_error, mean_absolute_error
 import numpy as np
 import jieba
 
