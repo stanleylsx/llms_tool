@@ -215,11 +215,6 @@ class Train(BaseModels):
         if self.training_args.do_eval and eval_dataset:
             self.logger.info('*** Start evaluating. ***')
             metrics = trainer.evaluate(eval_dataset)
-            try:
-                perplexity = math.exp(metrics['eval_loss'])
-            except OverflowError:
-                perplexity = float('inf')
-            metrics['perplexity'] = perplexity
             self.logger.info(f'Evaluating metrics: {metrics}')
             trainer.log_metrics('eval', metrics)
             trainer.save_metrics('eval', metrics)

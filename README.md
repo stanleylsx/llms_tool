@@ -14,6 +14,7 @@
 Date| Detail
 :---|---
 2023-07-25|初始仓库
+2023-08-08|奖励模型训练
 
 ## Requirement
 几个重要环境：
@@ -197,6 +198,16 @@ quantization_bit: Optional[int] = field(
 )
 ```
 
+### RM training
+#### 训练数据
+指令微调数据参考datasets/rm/example/train下面的文件，数据由instruction、input、output三个字段组成。output是一个两元素列表，第一个元素是采纳的答案，第二个是拒绝的答案。  
+使用的时候把训练奖励模型的数据SFT里面一样填写到DataTrainingArguments配置里面。
+
+#### 训练配置
+需要在config.py中对应修改mode为train_reward_model，然后在TrainingArguments中配置好各项训练参数，然后运行main.py。常用的参数和SFT一样，参加上面的SFT训练配置内容。
+
+* 奖励模型训练不支持第一代ChatGLM6B，因为项目用trl的AutoModelForCausalLMWithValueHead组件是基于CausalLM模型的。ChatGLM6B是基于Prefix LM实现的。
+
 ### Test
 需要在config.py中将mode修改为batch_test，修改DataTrainingArguments中的test_file，然后运行main.py。此处提供两种文件类型的测试方式，区别如下：
 
@@ -248,5 +259,5 @@ cpm_quantization_target: Optional[str] = field(
 - [ ] 模型增强预训练
 - [ ] RLHF
   - [ ] PPO模型训练
-  - [ ] 奖励模型训练
+  - [✔] 奖励模型训练
 - [ ] nbce和ntk集成
