@@ -258,5 +258,5 @@ cpm_quantization_target: Optional[str] = field(
 ## Todo
 - [ ] 模型增强预训练
 - [ ] PPO模型训练
-- [√] 奖励模型训练
+- [x] 奖励模型训练
 - [ ] nbce和ntk集成
