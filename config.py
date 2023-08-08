@@ -1,6 +1,7 @@
 from typing import Literal, Optional, List, Union
 from dataclasses import asdict, dataclass, field
 from transformers import Seq2SeqTrainingArguments
+import torch
 
 # （待完成）预训练：          pretrain
 # 模型指令微调：             train_supervised_fine_tuning
@@ -105,21 +106,6 @@ class ModelArguments:
             'help': 'Whether to use double quantization in int4 training or not.',
         }
     )
-    cpm_quantization_target: Optional[str] = field(
-        default='q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj',
-        metadata={
-            # 需要对这个模型里面的哪些线性层进行量化？
-            'help': "Name(s) of target modules to use cpm Quantize. Use comma to separate multiple modules.\
-            ChatGLM choices: [\"query_key_value\", \"self_attention.dense\", \"dense_h_to_4h\", \"dense_4h_to_h\"], \
-            Falcon choices: [\"query_key_value\", \"self_attention.dense\", \"dense_h_to_4h\", \"dense_4h_to_h\"], \
-            BLOOM choices: [\"query_key_value\", \"self_attention.dense\", \"dense_h_to_4h\", \"dense_4h_to_h\"],\
-            LLaMA choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"],\
-            InternLM choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"up_proj\", \"down_proj\"] \
-            Aquila choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"] \
-            Baichuan choices: [\"W_pack\", \"o_proj\", \"gate_proj\", \"up_proj\", \"down_proj\"] \
-            Qwen choices: [\"c_attn\", \"c_proj\", \"w1\", \"w2\"]"
-        }
-    )
     gradio_port: Optional[int] = field(
         default=7777,
         metadata={
@@ -128,7 +114,7 @@ class ModelArguments:
         }
     )
     quantized_or_merged_output_dir: Optional[str] = field(
-        default='/home/mailai/datahub/llm/internlm-8k-8b',
+        default=None,
         metadata={
             # 当你想保存量化后的模型或者融合后的模型时，处理后的模型保存的地址。
             'help': 'Path to save the quantized or merged model checkpoints as well as the configurations manually.',
@@ -136,10 +122,6 @@ class ModelArguments:
     )
 
     def __post_init__(self):
-        import torch
-        if isinstance(self.cpm_quantization_target, str):
-            self.quantization_target = [target.strip() for target in self.cpm_quantization_target.split(',')]
-
         if self.torch_dtype in ('auto', None):
             self.torch_dtype = self.torch_dtype
         else:

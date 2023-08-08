@@ -36,5 +36,5 @@ class Metrics:
     @staticmethod
     def computer_training_reward_metric(preds):
         preds, _ = preds
-        accuracy = (preds[0] > preds[1]).sum() / len(preds[0])
+        accuracy = np.array(preds[0] > preds[1]).sum() / len(preds[0])
         return {'accuracy': accuracy}
