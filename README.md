@@ -243,7 +243,8 @@ quantized_or_merged_output_dir: Optional[str] = field(
     }
 )
 ```
-* 使用bnb量化将会默认对所有线性层进行量化，使用cpm量化则需要在ModelArguments设置中手动设置哪些线性层需要量化。
+* 使用bnb量化将会默认对所有线性层进行量化，使用cpm量化则需要在ModelArguments设置中手动设置哪些线性层需要量化。![ct-logo-d2ebd333](https://github.com/StanleyLsx/llms_tool/assets/9429671/c10f7234-480b-4f42-92a4-8acb720aede7)
+
 
 ```
 cpm_quantization_target: Optional[str] = field(
@@ -257,7 +258,6 @@ cpm_quantization_target: Optional[str] = field(
 
 ## Todo
 - [ ] 模型增强预训练
-- [ ] RLHF
-  - [ ] PPO模型训练
-  - [✔] 奖励模型训练
+- [ ] PPO模型训练
+- [√] 奖励模型训练
 - [ ] nbce和ntk集成
