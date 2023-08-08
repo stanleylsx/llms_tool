@@ -1,4 +1,4 @@
-# ![ct-logo-d2ebd333](https://github.com/StanleyLsx/llms_tool/assets/9429671/c10f7234-480b-4f42-92a4-8acb720aede7)LLMs Tool  
+# LLMs Tool  
 ![Authour](https://img.shields.io/badge/Author-StanleyLsx-red.svg) 
 [![License Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 ![python_version](https://img.shields.io/badge/Python-3.10%2B-green.svg)
