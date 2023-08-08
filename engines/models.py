@@ -184,7 +184,7 @@ class BaseModels:
                     dtype=leaf_module.weight.dtype,
                     device=leaf_module.weight.device if device is None else device,
                 )
-                setattr(super_module, key[0].split('.')[-1], quantized_liner)
+                setattr(super_module, key.split('.')[-1], quantized_liner)
         return model
 
     def save_quantized_model(self):
