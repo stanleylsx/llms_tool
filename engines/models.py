@@ -172,14 +172,11 @@ class BaseModels:
             return None, None
 
     def quantize(self, model, bits, device=None):
-        key_list = [(key, module) for key, module in model.named_modules()]
-        for key in key_list:
-            if isinstance(self.model_args.quantization_target, str):
-                target_found = re.fullmatch(self.model_args.quantization_target, key[0])
-            else:
-                target_found = any(key[0].endswith(target_key) for target_key in self.model_args.quantization_target)
-            if target_found:
-                super_module, leaf_module = self.get_module_by_name(model, key[0])
+        for key, module in model.named_modules():
+            if isinstance(module, torch.nn.Linear):
+                if key in ('lm_head', 'embed_out', 'output_layer'):
+                    continue
+                super_module, leaf_module = self.get_module_by_name(model, key)
                 quantized_liner = QuantizedLinear(
                     weight_bit_width=bits,
                     weight=leaf_module.weight.to(torch.cuda.current_device()),
