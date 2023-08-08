@@ -30,14 +30,14 @@ class Train(BaseModels):
         self.logger = logger
         self.metrics = Metrics(data_manager, logger)
 
-    def construct_base_model(self):
+    def construct_base_model(self, model):
         self.logger.info(f'Fine tuning type: {self.training_args.fine_tuning_type}')
         if self.training_args.fine_tuning_type == 'full':
             if self.model_args.quantization_bit is not None:
                 raise ValueError('Full-parameter fine-tuning does not support quantization.')
             self.logger.info('Full-parameters training.')
-            self.model = self.model.float()
-            print_trainable_parameters(self.model, logger=self.logger)
+            model = model.float()
+            print_trainable_parameters(model, logger=self.logger)
         elif self.training_args.fine_tuning_type == 'lora':
             self.logger.info('Init new peft model.')
             if self.model_args.quantization_bit is None:
@@ -56,8 +56,8 @@ class Train(BaseModels):
                 bias=self.training_args.lora_bias,
                 target_modules=self.lora_target_modules,
             )
-            self.model = get_peft_model(self.model, peft_config)
-            self.model.print_trainable_parameters()
+            model = get_peft_model(model, peft_config)
+            model.print_trainable_parameters()
         elif self.training_args.fine_tuning_type == 'adalora':
             self.logger.info('Init new peft model.')
             if self.model_args.quantization_bit is None:
@@ -81,8 +81,8 @@ class Train(BaseModels):
                 deltaT=self.training_args.adalora_delta_t,
                 target_modules=self.lora_target_modules,
             )
-            self.model = get_peft_model(self.model, peft_config)
-            self.model.print_trainable_parameters()
+            model = get_peft_model(model, peft_config)
+            model.print_trainable_parameters()
         elif self.training_args.fine_tuning_type == 'prompt_tuning':
             self.logger.info('Init new peft model.')
             self.logger.info('Adapter prompt tuning training.')
@@ -90,8 +90,8 @@ class Train(BaseModels):
                 task_type=TaskType.CAUSAL_LM,
                 num_virtual_tokens=self.training_args.num_virtual_tokens,
             )
-            self.model = get_peft_model(self.model, peft_config)
-            self.model.print_trainable_parameters()
+            model = get_peft_model(model, peft_config)
+            model.print_trainable_parameters()
         elif self.training_args.fine_tuning_type == 'p_tuning':
             self.logger.info('Init new peft model.')
             self.logger.info('Adapter P-tuning training.')
@@ -100,8 +100,8 @@ class Train(BaseModels):
                 num_virtual_tokens=self.training_args.num_virtual_tokens,
                 encoder_hidden_size=self.training_args.prompt_encoder_hidden_size
             )
-            self.model = get_peft_model(self.model, peft_config)
-            self.model.print_trainable_parameters()
+            model = get_peft_model(model, peft_config)
+            model.print_trainable_parameters()
         elif self.training_args.fine_tuning_type == 'prefix_tuning':
             self.logger.info('Init new peft model.')
             self.logger.info('Adapter prefix tuning training.')
@@ -111,9 +111,10 @@ class Train(BaseModels):
                 encoder_hidden_size=self.training_args.prompt_encoder_hidden_size,
                 prefix_projection=True,
             )
-            self.model.gradient_checkpointing_disable()
-            self.model = get_peft_model(self.model, peft_config)
-            self.model.print_trainable_parameters()
+            model.gradient_checkpointing_disable()
+            model = get_peft_model(model, peft_config)
+            model.print_trainable_parameters()
+        return model
 
     def set_train_env(self):
         if self.training_args.gradient_checkpointing:
@@ -133,7 +134,7 @@ class Train(BaseModels):
             self.model.model_parallel = True
 
     def supervised_fine_tuning(self):
-        self.construct_base_model()
+        self.model = self.construct_base_model(self.model)
         self.logger.info(f'Model struct:\n{self.model}')
         self.set_train_env()
 
@@ -175,7 +176,7 @@ class Train(BaseModels):
             trainer.save_metrics('eval', metrics)
 
     def train_reward_model(self):
-        self.construct_base_model()
+        self.model = self.construct_base_model(self.model)
         support_putput_names = AutoModelForCausalLMWithValueHead.lm_head_namings
         putput_layer_name = list(self.model.named_modules())[-1][0].split('.')[-1]
         if putput_layer_name not in support_putput_names:
@@ -214,11 +215,6 @@ class Train(BaseModels):
         if self.training_args.do_eval and eval_dataset:
             self.logger.info('*** Start evaluating. ***')
             metrics = trainer.evaluate(eval_dataset)
-            try:
-                perplexity = math.exp(metrics['eval_loss'])
-            except OverflowError:
-                perplexity = float('inf')
-            metrics['perplexity'] = perplexity
             self.logger.info(f'Evaluating metrics: {metrics}')
             trainer.log_metrics('eval', metrics)
             trainer.save_metrics('eval', metrics)

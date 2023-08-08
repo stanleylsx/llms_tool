@@ -5,7 +5,6 @@
 # @File : metrics.py
 # @Software: PyCharm
 from rouge_chinese import Rouge
-from sklearn.metrics import mean_squared_error, mean_absolute_error
 import numpy as np
 import jieba
 
@@ -35,12 +34,7 @@ class Metrics:
         return metric_results
 
     @staticmethod
-    def computer_training_reward_metric(preds, labels):
-        # MSE
-        mse = mean_squared_error(labels, preds)
-        # MAE
-        mae = mean_absolute_error(labels, preds)
-        # accuracy
+    def computer_training_reward_metric(preds):
+        preds, _ = preds
         accuracy = (preds[0] > preds[1]).sum() / len(preds[0])
-
-        return {'mse': mse, 'mae': mae, 'accuracy': accuracy}
+        return {'accuracy': accuracy}
