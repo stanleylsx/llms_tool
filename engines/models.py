@@ -79,7 +79,6 @@ class BaseModels:
                     torch_dtype=self.model_args.torch_dtype,
                     **config_kwargs
                 )
-
         elif self.model_args.model_type in ['falcon', 'baichuan', 'aquila', 'internlm', 'moss', 'qwen']:
             if self.model_args.quantization_bit is not None and self.model_args.quantization == 'cpm':
                 model = AutoModelForCausalLM.from_pretrained(
