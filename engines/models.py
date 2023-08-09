@@ -69,6 +69,9 @@ class BaseModels:
                     torch_dtype=self.model_args.torch_dtype,
                     **config_kwargs
                 ).quantize(self.model_args.quantization_bit)
+                model.tie_weights()
+                device_map = auto_configure_device_map(torch.cuda.device_count(), model)
+                model = dispatch_model(model, device_map=device_map)
             else:
                 model = AutoModel.from_pretrained(
                     model_to_load,
@@ -76,18 +79,16 @@ class BaseModels:
                     torch_dtype=self.model_args.torch_dtype,
                     **config_kwargs
                 )
-            model.tie_weights()
-            device_map = auto_configure_device_map(torch.cuda.device_count(), model)
-            model = dispatch_model(model, device_map=device_map)
+
         elif self.model_args.model_type in ['falcon', 'baichuan', 'aquila', 'internlm', 'moss', 'qwen']:
             if self.model_args.quantization_bit is not None and self.model_args.quantization == 'cpm':
                 model = AutoModelForCausalLM.from_pretrained(
                     model_to_load,
+                    device_map='auto',
                     trust_remote_code=True,
                     torch_dtype=self.model_args.torch_dtype,
                     **config_kwargs
-                )
-                model = self.quantize(model, self.model_args.quantization_bit)
+                ).quantize(model, self.model_args.quantization_bit)
                 model.tie_weights()
                 device_map = infer_auto_device_map(model)
                 self.logger.info(device_map)
