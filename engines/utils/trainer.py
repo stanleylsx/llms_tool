@@ -2,7 +2,7 @@ from transformers import Seq2SeqTrainer, Trainer
 import torch
 
 
-class MySeq2SeqTrainer(Seq2SeqTrainer):
+class SFTTrainer(Seq2SeqTrainer):
     def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None, **gen_kwargs):
         prompt_len, label_len = inputs['input_ids'].size(-1), inputs['labels'].size(-1)
         if prompt_len > label_len:
@@ -29,7 +29,7 @@ class MySeq2SeqTrainer(Seq2SeqTrainer):
         return padded_tensor
 
 
-class MyRewardTrainer(Trainer):
+class RewardTrainer(Trainer):
     def __init__(self, model_type, **kwargs):
         super().__init__(**kwargs)
         self.model_type = model_type

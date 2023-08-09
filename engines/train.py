@@ -9,7 +9,7 @@ from engines.utils.print_parameters import print_trainable_parameters
 from engines.utils.metrics import Metrics
 from peft import LoraConfig, AdaLoraConfig, PromptTuningConfig, PromptEncoderConfig, PrefixTuningConfig
 from peft import TaskType, get_peft_model
-from engines.utils.trainer import MySeq2SeqTrainer, MyRewardTrainer
+from engines.utils.trainer import SFTTrainer, RewardTrainer
 from transformers import DataCollatorForSeq2Seq
 from engines.data import DataCollatorForRewardModelTraining
 from trl import AutoModelForCausalLMWithValueHead
@@ -145,7 +145,7 @@ class Train(BaseModels):
             return_tensors='pt',
             label_pad_token_id=self.data_manager.label_pad_token_id,
         )
-        trainer = MySeq2SeqTrainer(
+        trainer = SFTTrainer(
             model=self.model,
             args=self.training_args,
             train_dataset=train_dataset if self.training_args.do_train else None,
@@ -191,7 +191,7 @@ class Train(BaseModels):
         train_dataset, eval_dataset = self.data_manager.prepare_dataset()
         data_collator = DataCollatorForRewardModelTraining(tokenizer=self.tokenizer, return_tensors='pt')
         self.training_args.remove_unused_columns = False
-        trainer = MyRewardTrainer(
+        trainer = RewardTrainer(
             model_type=self.model_args.model_type,
             model=self.model,
             args=self.training_args,
