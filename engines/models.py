@@ -31,13 +31,14 @@ class BaseModels:
         if self.model_args.checkpoint_dir is None:
             logger.warning('Checkpoint is not found, load the original model.')
         else:
-            logger.info(f'Load adapter model: {self.model_args.checkpoint_dir} ')
+            logger.info(f'Load additional model: {self.model_args.checkpoint_dir}')
             self.model = self.load_adapter(self.model)
         if self.model_args.checkpoint_dir is not None:
             logger.info('Loaded fine-tuned model from checkpoint: {}'.format(self.model_args.checkpoint_dir))
 
     def load_model(self):
-        config_kwargs = {'cache_dir': self.model_args.cache_dir}
+        config_kwargs = {'cache_dir': self.model_args.cache_dir,
+                         'torch_dtype': self.model_args.torch_dtype}
         if self.model_args.quantization_bit is not None:
             if self.model_args.quantization == 'bnb':
                 if self.model_args.quantization_bit == 8:
@@ -52,9 +53,13 @@ class BaseModels:
                         bnb_4bit_compute_dtype=self.model_args.torch_dtype,
                         bnb_4bit_use_double_quant=self.model_args.double_quantization,
                         bnb_4bit_quant_type=self.model_args.quantization_type)
+                config_kwargs['device_map'] = 'auto'
                 self.logger.info('Quantifying(bnb) model to {} bit.'.format(self.model_args.quantization_bit))
             elif self.model_args.quantization == 'cpm':
                 self.logger.info('Quantifying(cpm) model to {} bit.'.format(self.model_args.quantization_bit))
+        else:
+            if self.model_args.model_type != 'chatglm':
+                config_kwargs['device_map'] = 'auto'
 
         if self.model_args.checkpoint_dir is not None and self.training_args.fine_tuning_type == 'full':
             model_to_load = self.model_args.checkpoint_dir
@@ -62,98 +67,41 @@ class BaseModels:
             model_to_load = self.model_args.model_path
 
         if self.model_args.model_type == 'chatglm':
-            if self.model_args.quantization_bit is not None and self.model_args.quantization == 'cpm':
-                model = AutoModel.from_pretrained(
-                    model_to_load,
-                    trust_remote_code=True,
-                    torch_dtype=self.model_args.torch_dtype,
-                    **config_kwargs
-                ).quantize(self.model_args.quantization_bit)
-                model.tie_weights()
-                device_map = auto_configure_device_map(torch.cuda.device_count(), model)
-                model = dispatch_model(model, device_map=device_map)
-            else:
-                model = AutoModel.from_pretrained(
-                    model_to_load,
-                    trust_remote_code=True,
-                    torch_dtype=self.model_args.torch_dtype,
-                    **config_kwargs
-                )
+            model = AutoModel.from_pretrained(model_to_load, trust_remote_code=True, **config_kwargs)
         elif self.model_args.model_type in ['falcon', 'baichuan', 'aquila', 'internlm', 'moss', 'qwen']:
-            if self.model_args.quantization_bit is not None and self.model_args.quantization == 'cpm':
-                model = AutoModelForCausalLM.from_pretrained(
-                    model_to_load,
-                    device_map='auto',
-                    trust_remote_code=True,
-                    torch_dtype=self.model_args.torch_dtype,
-                    **config_kwargs
-                ).quantize(model, self.model_args.quantization_bit)
-                model.tie_weights()
-                device_map = infer_auto_device_map(model)
-                self.logger.info(device_map)
-                model = dispatch_model(model, device_map=device_map)
-            else:
-                model = AutoModelForCausalLM.from_pretrained(
-                    model_to_load,
-                    device_map='auto',
-                    trust_remote_code=True,
-                    torch_dtype=self.model_args.torch_dtype,
-                    **config_kwargs)
+            model = AutoModelForCausalLM.from_pretrained(model_to_load, trust_remote_code=True, **config_kwargs)
             if self.model_args.model_type == 'qwen':
                 model.generate = MethodType(PreTrainedModel.generate, model)
         elif self.model_args.model_type == 'rwkv':
-            model = RwkvForCausalLM.from_pretrained(model_to_load, device_map='auto')
+            model = RwkvForCausalLM.from_pretrained(model_to_load, **config_kwargs)
         elif self.model_args.model_type == 'llama':
-            if self.model_args.quantization_bit is not None and self.model_args.quantization == 'cpm':
-                model = LlamaForCausalLM.from_pretrained(
-                    model_to_load,
-                    torch_dtype=self.model_args.torch_dtype,
-                    **config_kwargs)
-                model = self.quantize(model, self.model_args.quantization_bit)
-                model.tie_weights()
-                device_map = infer_auto_device_map(model)
-                self.logger.info(device_map)
-                model = dispatch_model(model, device_map=device_map)
-            else:
-                model = LlamaForCausalLM.from_pretrained(
-                    model_to_load,
-                    device_map='auto',
-                    torch_dtype=self.model_args.torch_dtype,
-                    **config_kwargs)
+            model = LlamaForCausalLM.from_pretrained(model_to_load, **config_kwargs)
         elif self.model_args.model_type == 'bloom':
-            if self.model_args.quantization_bit is not None and self.model_args.quantization == 'cpm':
-                model = BloomForCausalLM.from_pretrained(
-                    model_to_load,
-                    torch_dtype=self.model_args.torch_dtype,
-                    **config_kwargs)
-                model = self.quantize(model, self.model_args.quantization_bit)
-                model.tie_weights()
-                device_map = infer_auto_device_map(model)
-                self.logger.info(device_map)
-                model = dispatch_model(model, device_map=device_map)
-            else:
-                model = BloomForCausalLM.from_pretrained(
-                    model_to_load,
-                    device_map='auto',
-                    torch_dtype=self.model_args.torch_dtype,
-                    **config_kwargs)
+            model = BloomForCausalLM.from_pretrained(model_to_load, **config_kwargs)
         else:
             raise
+
+        if self.model_args.quantization_bit is not None and self.model_args.quantization == 'cpm':
+            model = self.quantize(model, self.model_args.quantization_bit)
+            model.tie_weights()
+            if self.model_args.model_type != 'chatglm':
+                device_map = infer_auto_device_map(model)
+            else:
+                device_map = auto_configure_device_map(torch.cuda.device_count(), model)
+            model = dispatch_model(model, device_map=device_map)
 
         if os.path.exists(model_to_load + '/generation_config.json'):
             model.generation_config = GenerationConfig.from_pretrained(model_to_load)
         return model
 
     def load_adapter(self, model):
-        if self.training_args.fine_tuning_type in (
-                'lora', 'full', 'adalora', 'prompt_tuning', 'p_tuning', 'prefix_tuning'):
-            assert os.path.exists(os.path.join(self.model_args.checkpoint_dir, WEIGHTS_NAME)), \
-                'Provided path ({}) does not contain a adapter weight.'.format(self.model_args.checkpoint_dir)
-            assert os.path.exists(os.path.join(self.model_args.checkpoint_dir, CONFIG_NAME)), \
-                'The given checkpoint may be not a adapter checkpoint, ' \
-                'please specify `--fine_tuning_type full` instead.'
+        if os.path.exists(os.path.join(self.model_args.checkpoint_dir, WEIGHTS_NAME)) \
+                and os.path.exists(os.path.join(self.model_args.checkpoint_dir, CONFIG_NAME)):
+            self.logger.info('Found adapter model and load it.')
             model = PeftModel.from_pretrained(model, self.model_args.checkpoint_dir)
             model = model.merge_and_unload()
+        else:
+            self.logger.info('The given checkpoint may be not have adapter checkpoint.')
         return model
 
     @staticmethod

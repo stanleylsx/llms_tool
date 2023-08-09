@@ -169,7 +169,7 @@ class Predictor(BaseModels):
                 continue
             history = predict(query, history)
 
-    def batch_test(self):
+    def sft_batch_test(self):
         test_file = self.data_args.test_file
         if test_file is None or not os.path.exists(test_file):
             self.logger.error('Test file does not exist.')
@@ -214,3 +214,6 @@ class Predictor(BaseModels):
         if file_type == 'json':
             metrics = self.metrics.computer_supervised_fine_tuning_metric(outputs, inputs)
             self.logger.info(metrics)
+
+    def rm_batch_test():
+        pass
