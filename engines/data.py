@@ -20,9 +20,9 @@ class DataManager:
         self.model_args = config.model_args
         self.training_args = config.training_args
         self.prompt_template = Template(self.data_args.prompt_template)
-        logger.info(f'Load tokenizer: {self.model_args.model_path}')
+        logger.info(f'Load tokenizer from {self.model_args.model_path}')
         self.tokenizer = self.load_tokenizer(self.model_args.model_path)
-        self.logger.info(f'Tokenizer: {self.tokenizer}')
+        self.logger.info(f'Tokenizer:\n{self.tokenizer}')
         if self.data_args.ignore_pad_token_for_loss:
             self.label_pad_token_id = -100
         else:
