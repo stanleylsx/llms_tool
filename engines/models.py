@@ -75,6 +75,7 @@ class BaseModels:
             else:
                 model = AutoModel.from_pretrained(
                     model_to_load,
+                    device_map='auto',
                     trust_remote_code=True,
                     torch_dtype=self.model_args.torch_dtype,
                     **config_kwargs
@@ -83,7 +84,6 @@ class BaseModels:
             if self.model_args.quantization_bit is not None and self.model_args.quantization == 'cpm':
                 model = AutoModelForCausalLM.from_pretrained(
                     model_to_load,
-                    device_map='auto',
                     trust_remote_code=True,
                     torch_dtype=self.model_args.torch_dtype,
                     **config_kwargs
