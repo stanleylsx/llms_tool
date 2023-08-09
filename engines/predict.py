@@ -38,6 +38,8 @@ class Predictor(BaseModels):
         elif self.model_args.model_type == 'internlm':
             eos_token_id = (2, 103028)
             gen_kwargs['eos_token_id'] = eos_token_id
+        elif self.model_args.model_type == 'qwen':
+            gen_kwargs['eos_token_id'] = 151645
         return gen_kwargs
 
     def web_inference(self):
