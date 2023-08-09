@@ -4,15 +4,16 @@ from transformers import Seq2SeqTrainingArguments
 import torch
 
 # （待完成）预训练：          pretrain
-# 模型指令微调：             train_supervised_fine_tuning
-# （ing）奖励模型训练：       train_reward_model
-# （待完成）奖励模型强化训练：   train_ppo_model
+# 模型指令微调：              sft_train
+# 奖励模型训练：              rm_train
+# （待完成）奖励模型强化训练： ppo_train
 # 网页端测试模型：            web_inference
-# 终端模型交互：             terminal_inference
-# 融合模型：                merge_peft_model
-# 打印模型参数：             show_model_info
+# 终端模型交互：              terminal_inference
+# 融合模型：                 merge_peft_model
+# 打印模型参数：              show_model_info
 # 存储量化的模型：            save_quantized_model
-# 模型效果测试及评估：         batch_test
+# 模型效果测试及评估：        sft_batch_test
+# 奖励模型效果测试及评估：     rm_batch_test
 mode = 'web_inference'
 
 
@@ -137,21 +138,21 @@ class DataTrainingArguments:
     Arguments pertaining to what data we are going to input our model for training and evaluation.
     """
     train_file_dir: Optional[str] = field(
-        default='datasets/rm/example/train',
+        default='datasets/finetune/example/train',
         metadata={
             # 训练集保存的路径。
             'help': 'The train json data file folder.'
         }
     )
     validation_file_dir: Optional[str] = field(
-        default='datasets/rm/example/eval',
+        default='datasets/finetune/example/eval',
         metadata={
             # 验证集保存的路径。
             'help': 'The evaluation json file folder.'
         }
     )
     test_file: Optional[str] = field(
-        default='datasets/finetune/dataset/test/test_data.json',
+        default='datasets/finetune/example/test/test_data.json',
         metadata={
             # 测试集保存的路径。
             'help': 'The test file.'

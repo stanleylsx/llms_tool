@@ -177,9 +177,9 @@ class DataManager:
 
     def prepare_dataset(self):
 
-        def propocess_dataset(process_func, dataset, tag):
-            with self.training_args.main_process_first(desc=f'Handle {tag} dataset.'):
-                if tag == 'train':
+        def propocess_dataset(process_func, dataset, shuffle=True):
+            with self.training_args.main_process_first(desc='Handle dataset.'):
+                if shuffle:
                     dataset = dataset.shuffle()
                 dataset = dataset.map(
                     process_func,
@@ -187,16 +187,16 @@ class DataManager:
                     num_proc=self.data_args.preprocessing_num_workers,
                     remove_columns=dataset.column_names,
                     load_from_cache_file=not self.data_args.overwrite_cache,
-                    desc=f'Running tokenizer on {tag} dataset'
+                    desc='Running tokenizer on dataset'
                 )
                 return dataset
 
         raw_datasets = self.load_datasets()
         train_dataset = raw_datasets['train']
-        if mode == 'train_supervised_fine_tuning':
-            train_dataset = propocess_dataset(self.preprocess_train_supervised_fine_tuning_dataset, train_dataset, 'train')
-        elif mode == 'train_reward_model':
-            train_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, train_dataset, 'train')
+        if mode == 'sft_train':
+            train_dataset = propocess_dataset(self.preprocess_train_supervised_fine_tuning_dataset, train_dataset)
+        elif mode == 'rm_train':
+            train_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, train_dataset)
         self.logger.debug(f'Train dataset nums: {len(train_dataset)}')
 
         eval_dataset = None
@@ -204,10 +204,10 @@ class DataManager:
             if 'validation' not in raw_datasets.keys():
                 raise ValueError('do_eval requires a validation dataset')
             eval_dataset = raw_datasets['validation']
-            if mode == 'train_supervised_fine_tuning':
-                eval_dataset = propocess_dataset(self.preprocess_eval_supervised_fine_tuning_dataset, eval_dataset, 'validation')
-            elif mode == 'train_reward_model':
-                eval_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, eval_dataset, 'validation')
+            if mode == 'sft_train':
+                eval_dataset = propocess_dataset(self.preprocess_eval_supervised_fine_tuning_dataset, eval_dataset, False)
+            elif mode == 'rm_train':
+                eval_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, eval_dataset, False)
             self.logger.debug(f'Validation dataset nums: {len(eval_dataset)}')
         return train_dataset, eval_dataset
 

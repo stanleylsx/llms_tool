@@ -22,15 +22,15 @@ if __name__ == '__main__':
     if mode == 'pretrain':
         # 模型预训练
         pass
-    elif mode == 'train_supervised_fine_tuning':
+    elif mode == 'sft_train':
         # 模型指令微调
         train = Train(data_manager, config, logger)
         train.supervised_fine_tuning()
-    elif mode == 'train_reward_model':
+    elif mode == 'rm_train':
         # 奖励模型训练
         train = Train(data_manager, config, logger)
         train.train_reward_model()
-    elif mode == 'train_ppo_model':
+    elif mode == 'ppo_train':
         # 奖励模型强化训练
         pass
     elif mode == 'web_inference':
@@ -55,7 +55,11 @@ if __name__ == '__main__':
             raise ValueError('Quantization bit not set.')
         predictor = Predictor(data_manager, config, logger)
         predictor.save_quantized_model()
-    elif mode == 'batch_test':
+    elif mode == 'sft_batch_test':
         # 模型效果测试
         predictor = Predictor(data_manager, config, logger)
-        predictor.batch_test()
+        predictor.sft_batch_test()
+    elif mode == 'rm_batch_test':
+        # 奖励模型效果测试
+        predictor = Predictor(data_manager, config, logger)
+        predictor.rm_batch_test()
