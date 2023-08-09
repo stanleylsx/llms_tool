@@ -16,7 +16,6 @@ from peft.utils import CONFIG_NAME, WEIGHTS_NAME
 from peft import PeftModel
 from types import MethodType
 import os
-import re
 import torch
 
 
