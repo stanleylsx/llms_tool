@@ -31,10 +31,8 @@ class BaseModels:
         if self.model_args.checkpoint_dir is None:
             logger.warning('Checkpoint is not found, load the original model.')
         else:
-            logger.info(f'Load additional model: {self.model_args.checkpoint_dir}')
+            logger.info(f'Attempt to load additional model from {self.model_args.checkpoint_dir}')
             self.model = self.load_adapter(self.model)
-        if self.model_args.checkpoint_dir is not None:
-            logger.info('Loaded fine-tuned model from checkpoint: {}'.format(self.model_args.checkpoint_dir))
 
     def load_model(self):
         config_kwargs = {'cache_dir': self.model_args.cache_dir,
@@ -89,6 +87,11 @@ class BaseModels:
             else:
                 device_map = auto_configure_device_map(torch.cuda.device_count(), model)
             model = dispatch_model(model, device_map=device_map)
+        else:
+            if self.model_args.model_type == 'chatglm':
+                model.tie_weights()
+                device_map = auto_configure_device_map(torch.cuda.device_count(), model)
+                model = dispatch_model(model, device_map=device_map)
 
         if os.path.exists(model_to_load + '/generation_config.json'):
             model.generation_config = GenerationConfig.from_pretrained(model_to_load)
