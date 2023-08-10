@@ -210,6 +210,7 @@ class Train(BaseModels):
         trainer.log_metrics('train', metrics)
         trainer.save_metrics('train', metrics)
         trainer.save_state()
+        self.logger.info(f'Saving model checkpoint to {self.model_args.output_dir}')
         trainer.save_model()
 
         if self.training_args.do_eval and eval_dataset:

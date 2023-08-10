@@ -1,5 +1,7 @@
 from transformers import Seq2SeqTrainer, Trainer
+from typing import Optional
 import torch
+import os
 
 
 class SFTTrainer(Seq2SeqTrainer):
@@ -44,3 +46,10 @@ class RewardTrainer(Trainer):
         loss = -torch.nn.functional.logsigmoid(r_accept - r_reject).mean()
         outputs = {'r_accept': r_accept, 'r_reject': r_reject}
         return (loss, outputs) if return_outputs else loss
+
+    def _save(self, output_dir: Optional[str] = None, state_dict=None):
+        output_dir = output_dir if output_dir is not None else self.args.output_dir
+        state_dict = self.model.state_dict()
+        torch.save(state_dict, os.path.join(output_dir, 'vhead.bin'))
+        self.model.pretrained_model.save_pretrained(output_dir)
+        torch.save(self.args, os.path.join(output_dir, 'training_args.bin'))
