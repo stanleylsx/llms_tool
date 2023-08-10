@@ -1,8 +1,10 @@
 from transformers import Seq2SeqTrainer, Trainer
+from typing import Optional
 import torch
+import os
 
 
-class MySeq2SeqTrainer(Seq2SeqTrainer):
+class SFTTrainer(Seq2SeqTrainer):
     def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None, **gen_kwargs):
         prompt_len, label_len = inputs['input_ids'].size(-1), inputs['labels'].size(-1)
         if prompt_len > label_len:
@@ -29,7 +31,7 @@ class MySeq2SeqTrainer(Seq2SeqTrainer):
         return padded_tensor
 
 
-class MyRewardTrainer(Trainer):
+class RewardTrainer(Trainer):
     def __init__(self, model_type, **kwargs):
         super().__init__(**kwargs)
         self.model_type = model_type
@@ -44,3 +46,10 @@ class MyRewardTrainer(Trainer):
         loss = -torch.nn.functional.logsigmoid(r_accept - r_reject).mean()
         outputs = {'r_accept': r_accept, 'r_reject': r_reject}
         return (loss, outputs) if return_outputs else loss
+
+    def _save(self, output_dir: Optional[str] = None, state_dict=None):
+        output_dir = output_dir if output_dir is not None else self.args.output_dir
+        state_dict = self.model.state_dict()
+        torch.save(state_dict, os.path.join(output_dir, 'vhead.bin'))
+        self.model.pretrained_model.save_pretrained(output_dir)
+        torch.save(self.args, os.path.join(output_dir, 'training_args.bin'))

@@ -26,7 +26,7 @@ class BaseModels:
         self.training_args = config.training_args
         self.tokenizer = data_manager.tokenizer
         self.data_manager = data_manager
-        logger.info(f'Load model: {self.model_args.model_path}')
+        logger.info(f'Load model from {self.model_args.model_path}')
         self.model = self.load_model()
         if self.model_args.checkpoint_dir is None:
             logger.warning('Checkpoint is not found, load the original model.')
