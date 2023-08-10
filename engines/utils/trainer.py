@@ -1,4 +1,5 @@
 from transformers import Seq2SeqTrainer, Trainer
+from transformers.modeling_utils import unwrap_model
 from typing import Optional
 import torch
 import os
@@ -48,7 +49,8 @@ class RewardTrainer(Trainer):
         return (loss, outputs) if return_outputs else loss
 
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
-        output_dir = output_dir if output_dir is not None else self.args.output_dir
+        output_dir = self.args.output_dir
+        self.model = unwrap_model(self.model)
         state_dict = self.model.state_dict()
         torch.save(state_dict, os.path.join(output_dir, 'vhead.bin'))
         self.model.pretrained_model.save_pretrained(output_dir)
