@@ -9,13 +9,13 @@ from transformers import DataCollatorWithPadding
 from engines.utils.prompt_template import Template
 from datasets import load_dataset
 from glob import glob
-from config import mode
 import os
 
 
 class DataManager:
     def __init__(self, config, logger):
         self.logger = logger
+        self.mode = config.mode
         self.data_args = config.data_args
         self.model_args = config.model_args
         self.training_args = config.training_args
@@ -193,9 +193,9 @@ class DataManager:
 
         raw_datasets = self.load_datasets()
         train_dataset = raw_datasets['train']
-        if mode == 'sft_train':
+        if self.mode == 'sft_train':
             train_dataset = propocess_dataset(self.preprocess_train_supervised_fine_tuning_dataset, train_dataset)
-        elif mode == 'rm_train':
+        elif self.mode == 'rm_train':
             train_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, train_dataset)
         self.logger.debug(f'Train dataset nums: {len(train_dataset)}')
 
@@ -204,9 +204,9 @@ class DataManager:
             if 'validation' not in raw_datasets.keys():
                 raise ValueError('do_eval requires a validation dataset')
             eval_dataset = raw_datasets['validation']
-            if mode == 'sft_train':
+            if self.mode == 'sft_train':
                 eval_dataset = propocess_dataset(self.preprocess_eval_supervised_fine_tuning_dataset, eval_dataset, False)
-            elif mode == 'rm_train':
+            elif self.mode == 'rm_train':
                 eval_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, eval_dataset, False)
             self.logger.debug(f'Validation dataset nums: {len(eval_dataset)}')
         return train_dataset, eval_dataset
