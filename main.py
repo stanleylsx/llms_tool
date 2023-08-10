@@ -7,7 +7,6 @@
 from engines.utils.check_load_config import Configure
 from engines.data import DataManager
 from loguru import logger
-from config import mode
 from engines.train import Train
 from engines.predict import Predictor
 
@@ -15,6 +14,7 @@ from engines.predict import Predictor
 if __name__ == '__main__':
 
     config = Configure()
+    mode = config.mode
     log_name = config.training_args.output_dir + '/logs/' + mode + '.log'
     logger.add(log_name, encoding='utf-8')
 
