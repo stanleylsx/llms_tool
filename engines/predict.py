@@ -217,5 +217,5 @@ class Predictor(BaseModels):
             metrics = self.metrics.computer_supervised_fine_tuning_metric(outputs, inputs)
             self.logger.info(metrics)
 
-    def rm_batch_test():
+    def rm_batch_test(self):
         pass
