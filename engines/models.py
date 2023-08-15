@@ -8,6 +8,7 @@ from transformers import AutoModel, LlamaForCausalLM, BloomForCausalLM, AutoMode
 from transformers import BitsAndBytesConfig
 from transformers import PreTrainedModel
 from transformers.generation.utils import GenerationConfig
+from trl import AutoModelForCausalLMWithValueHead
 from accelerate import infer_auto_device_map, dispatch_model
 from engines.utils.glm_multi_gpus import auto_configure_device_map
 from engines.utils.print_parameters import summary
@@ -24,17 +25,42 @@ class BaseModels:
         self.logger = logger
         self.model_args = config.model_args
         self.training_args = config.training_args
+        self.mode = config.mode
         self.tokenizer = data_manager.tokenizer
         self.data_manager = data_manager
+        self.has_peft = False
+        self.has_vhead = False
         logger.info(f'Load model from {self.model_args.model_path}')
-        self.model = self.load_model()
-        if self.model_args.checkpoint_dir is None:
-            logger.warning('Checkpoint is not found, load the original model.')
-        else:
-            logger.info(f'Attempt to load additional model from {self.model_args.checkpoint_dir}')
-            self.model = self.load_adapter(self.model)
+        self.model = self.load_base_model()
 
-    def load_model(self):
+    def load_adapter(self):
+        if os.path.exists(os.path.join(self.training_args.output_dir, WEIGHTS_NAME)) \
+                and os.path.exists(os.path.join(self.training_args.output_dir, CONFIG_NAME)):
+            self.logger.info('Found adapter model and load it.')
+            self.has_peft = True
+            self.model = PeftModel.from_pretrained(self.model, self.training_args.output_dir)
+            if self.mode in ('merge_peft_model', 'save_quantized_model'):
+                self.logger.info('Merge peft model.')
+                self.model = self.model.merge_and_unload()
+        else:
+            self.logger.info('The given checkpoint may be not have adapter checkpoint.')
+
+    def load_reward_model(self):
+        if os.path.exists(os.path.join(self.training_args.output_dir, 'vhead.bin')):
+            self.logger.info('Found v_head model and load it.')
+            self.load_adapter()
+            self.has_vhead = True
+            if self.model_args.model_type == 'chatglm' and any(
+                    key.endswith('rotary_pos_emb') for key, _ in self.model.named_modules()):
+                self.model.lm_head = self.model.transformer.output_layer
+            self.model = AutoModelForCausalLMWithValueHead.from_pretrained(self.model)
+            file = os.path.join(self.training_args.output_dir, 'vhead.bin')
+            state_dict = torch.load(file)
+            self.model.load_state_dict(state_dict, strict=False)
+        else:
+            self.logger.info('The given checkpoint may be not have v_head checkpoint.')
+
+    def load_base_model(self):
         config_kwargs = {'cache_dir': self.model_args.cache_dir,
                          'torch_dtype': self.model_args.torch_dtype}
         if self.model_args.quantization_bit is not None:
@@ -97,16 +123,6 @@ class BaseModels:
             model.generation_config = GenerationConfig.from_pretrained(model_to_load)
         return model
 
-    def load_adapter(self, model):
-        if os.path.exists(os.path.join(self.model_args.checkpoint_dir, WEIGHTS_NAME)) \
-                and os.path.exists(os.path.join(self.model_args.checkpoint_dir, CONFIG_NAME)):
-            self.logger.info('Found adapter model and load it.')
-            model = PeftModel.from_pretrained(model, self.model_args.checkpoint_dir)
-            model = model.merge_and_unload()
-        else:
-            self.logger.info('The given checkpoint may be not have adapter checkpoint.')
-        return model
-
     @staticmethod
     def get_module_by_name(model, module_name):
         name_list = module_name.split('.')
@@ -138,26 +154,27 @@ class BaseModels:
         return model
 
     def save_quantized_model(self):
+        self.load_adapter()
         self.logger.info('Saving quantized model.')
         self.model.save_pretrained(self.model_args.quantized_or_merged_output_dir)
         self.tokenizer.save_pretrained(self.model_args.quantized_or_merged_output_dir)
         self.logger.info(f'Quantize done, model saved to {self.model_args.quantized_or_merged_output_dir}')
 
     def merge_peft_model(self):
+        self.load_adapter()
+        if not self.has_peft:
+            self.logger.error('Peft checkpoint not found.')
         self.logger.info(f'Base model: {self.model_args.model_type}')
         self.logger.info(f'Peft model: {self.model_args.checkpoint_dir}')
         self.logger.info('Loading LoRA for causal language model')
         tokenizer = self.data_manager.load_tokenizer(self.model_args.checkpoint_dir)
-        base_model_token_size = self.model.get_input_embeddings().weight.size(0)
-        if base_model_token_size != len(tokenizer):
-            self.model.resize_token_embeddings(len(tokenizer))
-            self.logger.info(f'Resize vocabulary size {base_model_token_size} to {len(tokenizer)}')
         self.logger.info('Saving to Hugging Face format...')
         tokenizer.save_pretrained(self.model_args.quantized_or_merged_output_dir)
         self.model.save_pretrained(self.model_args.quantized_or_merged_output_dir)
         self.logger.info(f'Merge done, model saved to {self.model_args.quantized_or_merged_output_dir}')
 
     def show_model_info(self):
+        self.load_adapter()
         info = summary(self.model, max_level=3)
         self.logger.info(f'Model struct:\n{self.model}')
         self.logger.info(f'Model parameter:\n{info}')

@@ -52,38 +52,51 @@ class DataManager:
 
         return tokenizer
 
-    def load_datasets(self):
+    def load_datasets_from_files(self, test=False):
         data_files = {}
-        if self.data_args.train_file_dir is not None and os.path.exists(self.data_args.train_file_dir):
-            train_data_files = glob(
-                f'{self.data_args.train_file_dir}/**/*.json', recursive=True) + glob(
-                f'{self.data_args.train_file_dir}/**/*.jsonl', recursive=True)
-            self.logger.info(f"train files: {', '.join(train_data_files)}")
-            data_files['train'] = train_data_files
-        if self.training_args.do_eval and self.data_args.validation_file_dir is not None \
-                and os.path.exists(self.data_args.validation_file_dir):
-            eval_data_files = glob(
-                f'{self.data_args.validation_file_dir}/**/*.json', recursive=True) + glob(
-                f'{self.data_args.validation_file_dir}/**/*.jsonl', recursive=True)
-            self.logger.info(f"eval files: {', '.join(eval_data_files)}")
-            data_files['validation'] = eval_data_files
-        raw_datasets = load_dataset(
-            'json',
-            data_files=data_files,
-            cache_dir=self.model_args.cache_dir,
-        )
-        if self.training_args.do_eval and 'validation' not in raw_datasets.keys() \
-                and self.data_args.dev_ratio > 0.0:
-            raw_datasets['validation'] = load_dataset(
+        if not test:
+            if self.data_args.train_file_dir is not None and os.path.exists(self.data_args.train_file_dir):
+                train_data_files = glob(
+                    f'{self.data_args.train_file_dir}/**/*.json', recursive=True) + glob(
+                    f'{self.data_args.train_file_dir}/**/*.jsonl', recursive=True)
+                self.logger.info(f"train files: {', '.join(train_data_files)}")
+                data_files['train'] = train_data_files
+            if self.training_args.do_eval and self.data_args.validation_file_dir is not None \
+                    and os.path.exists(self.data_args.validation_file_dir):
+                eval_data_files = glob(
+                    f'{self.data_args.validation_file_dir}/**/*.json', recursive=True) + glob(
+                    f'{self.data_args.validation_file_dir}/**/*.jsonl', recursive=True)
+                self.logger.info(f"eval files: {', '.join(eval_data_files)}")
+                data_files['validation'] = eval_data_files
+            raw_datasets = load_dataset(
                 'json',
                 data_files=data_files,
-                split=f'train[:{self.data_args.dev_ratio}%]',
                 cache_dir=self.model_args.cache_dir,
             )
-            raw_datasets['train'] = load_dataset(
+            if self.training_args.do_eval and 'validation' not in raw_datasets.keys() \
+                    and self.data_args.dev_ratio > 0.0:
+                raw_datasets['validation'] = load_dataset(
+                    'json',
+                    data_files=data_files,
+                    split=f'train[:{self.data_args.dev_ratio}%]',
+                    cache_dir=self.model_args.cache_dir,
+                )
+                raw_datasets['train'] = load_dataset(
+                    'json',
+                    data_files=data_files,
+                    split=f'train[{self.data_args.dev_ratio}%:]',
+                    cache_dir=self.model_args.cache_dir,
+                )
+        else:
+            if self.data_args.test_file is not None and os.path.exists(self.data_args.test_file):
+                test_data_files = glob(
+                    f'{self.data_args.test_file}/**/*.json', recursive=True) + glob(
+                    f'{self.data_args.test_file}/**/*.jsonl', recursive=True)
+                self.logger.info(f"test files: {', '.join(test_data_files)}")
+                data_files['test'] = test_data_files
+            raw_datasets = load_dataset(
                 'json',
                 data_files=data_files,
-                split=f'train[{self.data_args.dev_ratio}%:]',
                 cache_dir=self.model_args.cache_dir,
             )
         self.logger.info(f'Raw datasets: {raw_datasets}')
@@ -175,7 +188,7 @@ class DataManager:
             reject_list.append(reject_ids)
         return {'accept_ids': accept_list, 'reject_ids': reject_list}
 
-    def prepare_dataset(self):
+    def prepare_dataset(self, test=False):
 
         def propocess_dataset(process_func, dataset, shuffle=True):
             with self.training_args.main_process_first(desc='Handle dataset.'):
@@ -191,25 +204,33 @@ class DataManager:
                 )
                 return dataset
 
-        raw_datasets = self.load_datasets()
-        train_dataset = raw_datasets['train']
-        if self.mode == 'sft_train':
-            train_dataset = propocess_dataset(self.preprocess_train_supervised_fine_tuning_dataset, train_dataset)
-        elif self.mode == 'rm_train':
-            train_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, train_dataset)
-        self.logger.debug(f'Train dataset nums: {len(train_dataset)}')
-
-        eval_dataset = None
-        if self.training_args.do_eval:
-            if 'validation' not in raw_datasets.keys():
-                raise ValueError('do_eval requires a validation dataset')
-            eval_dataset = raw_datasets['validation']
+        if not test:
+            raw_datasets = self.load_datasets_from_files()
+            train_dataset = raw_datasets['train']
             if self.mode == 'sft_train':
-                eval_dataset = propocess_dataset(self.preprocess_eval_supervised_fine_tuning_dataset, eval_dataset, False)
+                train_dataset = propocess_dataset(self.preprocess_train_supervised_fine_tuning_dataset, train_dataset)
             elif self.mode == 'rm_train':
-                eval_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, eval_dataset, False)
-            self.logger.debug(f'Validation dataset nums: {len(eval_dataset)}')
-        return train_dataset, eval_dataset
+                train_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, train_dataset)
+            self.logger.debug(f'Train dataset nums: {len(train_dataset)}')
+
+            eval_dataset = None
+            if self.training_args.do_eval:
+                if 'validation' not in raw_datasets.keys():
+                    raise ValueError('do_eval requires a validation dataset')
+                eval_dataset = raw_datasets['validation']
+                if self.mode == 'sft_train':
+                    eval_dataset = propocess_dataset(self.preprocess_eval_supervised_fine_tuning_dataset, eval_dataset, False)
+                elif self.mode == 'rm_train':
+                    eval_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, eval_dataset, False)
+                self.logger.debug(f'Validation dataset nums: {len(eval_dataset)}')
+            return train_dataset, eval_dataset
+        else:
+            raw_datasets = self.load_datasets_from_files(test=True)
+            test_dataset = raw_datasets['test']
+            if self.mode == 'rm_batch_test':
+                test_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, test_dataset, False)
+            self.logger.debug(f'Test dataset nums: {len(test_dataset)}')
+            return test_dataset
 
 
 class DataCollatorForRewardModelTraining(DataCollatorWithPadding):

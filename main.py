@@ -7,6 +7,7 @@
 from engines.utils.check_load_config import Configure
 from engines.data import DataManager
 from loguru import logger
+from engines.models import BaseModels
 from engines.train import Train
 from engines.predict import Predictor
 
@@ -43,23 +44,23 @@ if __name__ == '__main__':
         predict.terminal_inference()
     elif mode == 'merge_peft_model':
         # 融合模型
-        predict = Predictor(data_manager, config, logger)
-        predict.merge_peft_model()
+        model = BaseModels(data_manager, config, logger)
+        model.merge_peft_model()
     elif mode == 'show_model_info':
         # 打印模型参数
-        predictor = Predictor(data_manager, config, logger)
-        predictor.show_model_info()
+        model = BaseModels(data_manager, config, logger)
+        model.show_model_info()
     elif mode == 'save_quantized_model':
         # 存储量化的模型
         if config.model_args.quantization_bit not in (4, 8):
             raise ValueError('Quantization bit not set.')
-        predictor = Predictor(data_manager, config, logger)
-        predictor.save_quantized_model()
+        model = BaseModels(data_manager, config, logger)
+        model.save_quantized_model()
     elif mode == 'sft_batch_test':
         # 模型效果测试
         predictor = Predictor(data_manager, config, logger)
         predictor.sft_batch_test()
     elif mode == 'rm_batch_test':
         # 奖励模型效果测试
-        predictor = Predictor(data_manager, config, logger)
-        predictor.rm_batch_test()
+        train = Train(data_manager, config, logger)
+        train.train_reward_model(test=True)

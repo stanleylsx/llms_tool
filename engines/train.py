@@ -116,7 +116,7 @@ class Train(BaseModels):
             model.print_trainable_parameters()
         return model
 
-    def set_train_env(self):
+    def set_train_enviroment(self):
         if self.training_args.gradient_checkpointing:
             self.model.gradient_checkpointing_enable()
             self.model.config.use_cache = False
@@ -153,7 +153,15 @@ class Train(BaseModels):
             data_collator=data_collator,
         )
         self.logger.info('*** Start training. ***')
-        trainer_result = trainer.train()
+        checkpoint = None
+        if self.training_args.resume_from_checkpoint:
+            checkpoint = self.training_args.output_dir
+            self.logger.info(f'Resume checkpoint from {checkpoint}')
+        try:
+            trainer_result = trainer.train(resume_from_checkpoint=checkpoint)
+        except ValueError:
+            self.logger.warning(f"Can't find a valid checkpoint at {checkpoint}")
+            trainer_result = trainer.train()
         metrics = trainer_result.metrics
         self.logger.info(f'Training metrics: {metrics}')
         trainer.log_metrics('train', metrics)
@@ -175,47 +183,57 @@ class Train(BaseModels):
             trainer.log_metrics('eval', metrics)
             trainer.save_metrics('eval', metrics)
 
-    def train_reward_model(self):
-        self.model = self.construct_base_model(self.model)
-        support_putput_names = AutoModelForCausalLMWithValueHead.lm_head_namings
-        putput_layer_name = list(self.model.named_modules())[-1][0].split('.')[-1]
-        if putput_layer_name not in support_putput_names:
-            support_putput_names.append(putput_layer_name)
-        if self.model_args.model_type == 'chatglm' and any(
-                key.endswith('rotary_pos_emb') for key, _ in self.model.named_modules()):
-            self.model.lm_head = self.model.transformer.output_layer
-        self.model = AutoModelForCausalLMWithValueHead.from_pretrained(self.model)
+    def train_reward_model(self, test=False):
+        self.load_reward_model()
+        if not self.has_vhead:
+            self.model = self.construct_base_model(self.model)
+            if self.model_args.model_type == 'chatglm' and any(
+                    key.endswith('rotary_pos_emb') for key, _ in self.model.named_modules()):
+                self.model.lm_head = self.model.transformer.output_layer
+            self.model = AutoModelForCausalLMWithValueHead.from_pretrained(self.model)
         self.logger.info(f'Model struct:\n{self.model}')
         print_trainable_parameters(self.model, self.logger)
-        self.set_train_env()
-        train_dataset, eval_dataset = self.data_manager.prepare_dataset()
+        self.set_train_enviroment()
         data_collator = DataCollatorForRewardModelTraining(tokenizer=self.tokenizer, return_tensors='pt')
-        self.training_args.remove_unused_columns = False
-        trainer = RewardTrainer(
-            model_type=self.model_args.model_type,
-            model=self.model,
-            args=self.training_args,
-            train_dataset=train_dataset if self.training_args.do_train else None,
-            tokenizer=self.tokenizer,
-            data_collator=data_collator,
-            compute_metrics=self.metrics.computer_training_reward_metric
-        )
-        checkpoint = None
-        if self.training_args.resume_from_checkpoint:
-            checkpoint = self.model_args.checkpoint_dir
-        self.logger.info('*** Start training. ***')
-        train_result = trainer.train(resume_from_checkpoint=checkpoint)
-        metrics = train_result.metrics
-        self.logger.info(f'Training metrics: {metrics}')
-        trainer.log_metrics('train', metrics)
-        trainer.save_metrics('train', metrics)
-        trainer.save_state()
-        self.logger.info(f'Saving model checkpoint to {self.training_args.output_dir}')
-        trainer.save_model()
+        if not test:
+            train_dataset, eval_dataset = self.data_manager.prepare_dataset()
+            self.training_args.remove_unused_columns = False
+            trainer = RewardTrainer(
+                model_type=self.model_args.model_type,
+                model=self.model,
+                args=self.training_args,
+                train_dataset=train_dataset if self.training_args.do_train else None,
+                tokenizer=self.tokenizer,
+                data_collator=data_collator,
+                compute_metrics=self.metrics.computer_training_reward_metric
+            )
+            train_result = trainer.train()
+            metrics = train_result.metrics
+            self.logger.info(f'Training metrics: {metrics}')
+            trainer.log_metrics('train', metrics)
+            trainer.save_metrics('train', metrics)
+            trainer.save_state()
+            self.logger.info(f'Saving model checkpoint to {self.training_args.output_dir}')
+            trainer.save_model()
 
-        if self.training_args.do_eval and eval_dataset:
-            self.logger.info('*** Start evaluating. ***')
-            metrics = trainer.evaluate(eval_dataset)
-            self.logger.info(f'Evaluating metrics: {metrics}')
-            trainer.log_metrics('eval', metrics)
-            trainer.save_metrics('eval', metrics)
+            if self.training_args.do_eval and eval_dataset:
+                self.logger.info('*** Start evaluating. ***')
+                metrics = trainer.evaluate(eval_dataset)
+                self.logger.info(f'Evaluating metrics: {metrics}')
+                trainer.log_metrics('eval', metrics)
+                trainer.save_metrics('eval', metrics)
+        else:
+            test_dataset = self.data_manager.prepare_dataset(test=True)
+            self.training_args.remove_unused_columns = False
+            trainer = RewardTrainer(
+                model_type=self.model_args.model_type,
+                model=self.model,
+                args=self.training_args,
+                tokenizer=self.tokenizer,
+                data_collator=data_collator,
+                compute_metrics=self.metrics.computer_training_reward_metric
+            )
+            metrics = trainer.evaluate(test_dataset, metric_key_prefix='test')
+            self.logger.info(f'Test metrics: {metrics}')
+            trainer.log_metrics('test', metrics)
+            trainer.save_metrics('test', metrics)
