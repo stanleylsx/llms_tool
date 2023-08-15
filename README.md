@@ -226,6 +226,8 @@ test_file: Optional[str] = field(
 )
 ```
 
+如果跑奖励模型的批量测试，需要在config.py中将mode修改为rm_batch_test，修改DataTrainingArguments中的test_file，然后运行main.py，奖励模型测试只会输出模型的准确率。
+
 ### Others
 Mode                | Describe                     | 
 :-------------------|------------------------------|

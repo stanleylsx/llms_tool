@@ -27,6 +27,7 @@ class Predictor(BaseModels):
         self.generating_args = config.generating_args
         self.prompt_template = data_manager.prompt_template
         self.metrics = Metrics(data_manager, logger)
+        self.load_adapter()
         self.logger.info(f'Model struct:\n{self.model}')
         self.model.eval()
 
@@ -185,6 +186,7 @@ class Predictor(BaseModels):
             else:
                 datas = [line.rstrip('\n') for line in file.readlines() if line != '']
         inputs, outputs, results = [], [], []
+        self.logger.info('*** Start test. ***')
         for data in tqdm(datas):
             if file_type == 'json':
                 if 'history' in data:
@@ -216,6 +218,3 @@ class Predictor(BaseModels):
         if file_type == 'json':
             metrics = self.metrics.computer_supervised_fine_tuning_metric(outputs, inputs)
             self.logger.info(metrics)
-
-    def rm_batch_test(self):
-        pass
