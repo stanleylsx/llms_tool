@@ -34,31 +34,44 @@ class BaseModels:
         self.model = self.load_base_model()
 
     def load_adapter(self):
-        if os.path.exists(os.path.join(self.training_args.output_dir, WEIGHTS_NAME)) \
-                and os.path.exists(os.path.join(self.training_args.output_dir, CONFIG_NAME)):
-            self.logger.info('Found adapter model and load it.')
-            self.has_peft = True
-            self.model = PeftModel.from_pretrained(self.model, self.training_args.output_dir)
-            if self.mode in ('merge_peft_model', 'save_quantized_model'):
-                self.logger.info('Merge peft model.')
-                self.model = self.model.merge_and_unload()
-        else:
-            self.logger.info('The given checkpoint may be not have adapter checkpoint.')
+        def load(dir):
+            if os.path.exists(os.path.join(dir, WEIGHTS_NAME)) and os.path.exists(os.path.join(dir, CONFIG_NAME)):
+                self.logger.info(f'Found adapter model at {dir} and load it.')
+                self.has_peft = True
+                self.model = PeftModel.from_pretrained(self.model, self.training_args.output_dir)
+                if self.mode in ('merge_peft_model', 'save_quantized_model'):
+                    self.logger.info('Merge peft model.')
+                    self.model = self.model.merge_and_unload()
+            else:
+                self.logger.info(f'The given dir: {dir} may be not have adapter checkpoint.')
+        if self.model_args.checkpoint_dir is not None:
+            load(self.model_args.checkpoint_dir)
+        if not self.has_peft:
+            load(self.training_args.output_dir)
+        if not self.has_peft:
+            self.logger.info('Checkpoint is not found, load the original model.')
 
     def load_reward_model(self):
-        if os.path.exists(os.path.join(self.training_args.output_dir, 'vhead.bin')):
-            self.logger.info('Found v_head model and load it.')
-            self.load_adapter()
-            self.has_vhead = True
-            if self.model_args.model_type == 'chatglm' and any(
-                    key.endswith('rotary_pos_emb') for key, _ in self.model.named_modules()):
-                self.model.lm_head = self.model.transformer.output_layer
-            self.model = AutoModelForCausalLMWithValueHead.from_pretrained(self.model)
-            file = os.path.join(self.training_args.output_dir, 'vhead.bin')
-            state_dict = torch.load(file)
-            self.model.load_state_dict(state_dict, strict=False)
-        else:
-            self.logger.info('The given checkpoint may be not have v_head checkpoint.')
+        def load(dir):
+            if os.path.exists(os.path.join(dir, 'vhead.bin')):
+                self.logger.info(f'Found v_head model at {dir} and load it.')
+                self.load_adapter()
+                self.has_vhead = True
+                if self.model_args.model_type == 'chatglm' and any(
+                        key.endswith('rotary_pos_emb') for key, _ in self.model.named_modules()):
+                    self.model.lm_head = self.model.transformer.output_layer
+                self.model = AutoModelForCausalLMWithValueHead.from_pretrained(self.model)
+                file = os.path.join(self.training_args.output_dir, 'vhead.bin')
+                state_dict = torch.load(file)
+                self.model.load_state_dict(state_dict, strict=False)
+            else:
+                self.logger.info(f'The given dir: {dir} may be not have v_head checkpoint.')
+        if self.model_args.checkpoint_dir is not None:
+            load(self.model_args.checkpoint_dir)
+        if not self.has_peft:
+            load(self.training_args.output_dir)
+        if not self.has_peft:
+            self.logger.info('Reward checkpoint is not found.')
 
     def load_base_model(self):
         config_kwargs = {'cache_dir': self.model_args.cache_dir,

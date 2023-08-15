@@ -125,6 +125,8 @@ Mode              | Inference Type |
 web_inference     | WebUI          |
 terminal_inference| Trminal        |
 
+* 预测的时候，模型会优先从你定义的ModelArguments中的checkpoint_dir读取，如果该文件下没有参数文件，则从TrainingArguments的output_dir文件夹加载，如果都没有则只加载最初的基座模型。
+
 ### SFT training
 
 #### 训练数据
@@ -227,6 +229,8 @@ test_file: Optional[str] = field(
 ```
 
 如果跑奖励模型的批量测试，需要在config.py中将mode修改为rm_batch_test，修改DataTrainingArguments中的test_file，然后运行main.py，奖励模型测试只会输出模型的准确率。
+
+* 批量测试的时候，adapter和reward模型会优先从你定义的ModelArguments中的checkpoint_dir读取，如果该文件下没有参数文件，则从TrainingArguments的output_dir文件夹加载。
 
 ### Others
 Mode                | Describe                     | 

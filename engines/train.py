@@ -136,7 +136,7 @@ class Train(BaseModels):
     def supervised_fine_tuning(self):
         self.model = self.construct_base_model(self.model)
         self.logger.info(f'Model struct:\n{self.model}')
-        self.set_train_env()
+        self.set_train_enviroment()
 
         train_dataset, eval_dataset = self.data_manager.prepare_dataset()
 
@@ -185,6 +185,8 @@ class Train(BaseModels):
 
     def train_reward_model(self, test=False):
         self.load_reward_model()
+        if test and not self.has_vhead:
+            raise Exception('Reward model is not correctly loaded.')
         if not self.has_vhead:
             self.model = self.construct_base_model(self.model)
             if self.model_args.model_type == 'chatglm' and any(
