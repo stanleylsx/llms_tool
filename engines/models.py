@@ -31,30 +31,32 @@ class BaseModels:
         self.has_peft = False
         self.has_vhead = False
 
-    def load_adapter(self, model, dir):
-        if os.path.exists(os.path.join(dir, WEIGHTS_NAME)) and os.path.exists(os.path.join(dir, CONFIG_NAME)):
-            self.logger.info(f'Found adapter model at {dir} and load it.')
+    def load_adapter(self, model, adapter_dir):
+        if adapter_dir is None:
+            return model
+        if os.path.exists(os.path.join(adapter_dir, WEIGHTS_NAME)) and os.path.exists(os.path.join(adapter_dir, CONFIG_NAME)):
+            self.logger.info(f'Found adapter model at {adapter_dir} and load it.')
             self.has_peft = True
-            model = PeftModel.from_pretrained(model, dir)
-            if self.mode in ('merge_peft_model', 'save_quantized_model'):
+            model = PeftModel.from_pretrained(model, adapter_dir)
+            if self.mode in ('web_inference', 'merge_peft_model', 'save_quantized_model'):
                 self.logger.info('Merge peft model.')
                 model = model.merge_and_unload()
         else:
-            self.logger.info(f'The given dir: {dir} may be not have adapter checkpoint.')
+            self.logger.info(f'The given dir: {adapter_dir} may be not have adapter checkpoint.')
         return model
 
-    def load_reward_model(self, model, dir):
-        if os.path.exists(vhead_path := os.path.join(dir, 'vhead.bin')):
-            self.logger.info(f'Found v_head model at {dir} and load it.')
-            model = self.load_adapter(model, dir)
+    def load_reward_model(self, model, vhead_dir):
+        if os.path.exists(vhead_path := os.path.join(vhead_dir, 'vhead.bin')):
+            self.logger.info(f'Found v_head model at {vhead_dir} and load it.')
+            model = self.load_adapter(model, adapter_dir=vhead_dir)
             self.has_vhead = True
             if self.model_args.model_type == 'chatglm' and any(
-                    key.endswith('rotary_pos_emb') for key, _ in self.model.named_modules()):
+                    key.endswith('rotary_pos_emb') for key, _ in model.named_modules()):
                 model.lm_head = model.transformer.output_layer
             model = AutoModelForCausalLMWithValueHead.from_pretrained(model)
             model.load_state_dict(torch.load(vhead_path), strict=False)
         else:
-            self.logger.info(f'The given dir: {dir} may be not have v_head checkpoint.')
+            self.logger.info(f'The given dir: {vhead_dir} may be not have v_head checkpoint.')
         return model
 
     def load_base_model(self):
@@ -153,19 +155,21 @@ class BaseModels:
     def save_quantized_model(self):
         self.logger.info(f'Load base model from {self.model_args.model_path}')
         model = self.load_base_model()
-        model = self.load_adapter(model, dir=self.model_args.checkpoint_dir)
+        model = self.load_adapter(model, adapter_dir=self.model_args.checkpoint_dir)
         self.logger.info('Saving quantized model.')
         model.save_pretrained(self.model_args.quantized_or_merged_output_dir)
         self.tokenizer.save_pretrained(self.model_args.quantized_or_merged_output_dir)
         self.logger.info(f'Quantize done, model saved to {self.model_args.quantized_or_merged_output_dir}')
 
     def merge_peft_model(self):
-        if os.path.exists(os.path.join(self.model_args.checkpoint_dir, WEIGHTS_NAME)) \
+        if self.model_args.checkpoint_dir is None:
+            self.logger.error(f'checkpoint_dir is None.')
+        if not os.path.exists(os.path.join(self.model_args.checkpoint_dir, WEIGHTS_NAME)) \
                 and os.path.exists(os.path.join(self.model_args.checkpoint_dir, CONFIG_NAME)):
             self.logger.error(f'Peft checkpoint not found at {self.model_args.checkpoint_dir}.')
         self.logger.info(f'Load base model from {self.model_args.model_path}')
         model = self.load_base_model()
-        model = self.load_adapter(model, dir=self.model_args.checkpoint_dir)
+        model = self.load_adapter(model, adapter_dir=self.model_args.checkpoint_dir)
         if not self.has_peft:
             self.logger.error('Peft checkpoint not found.')
         self.logger.info(f'Base model: {self.model_args.model_type}')
@@ -180,7 +184,7 @@ class BaseModels:
     def show_model_info(self):
         self.logger.info(f'Load base model from {self.model_args.model_path}')
         model = self.load_base_model()
-        model = self.load_adapter(model, dir=self.model_args.checkpoint_dir)
+        model = self.load_adapter(model, adapter_dir=self.model_args.checkpoint_dir)
         info = summary(model, max_level=3)
         self.logger.info(f'Model struct:\n{model}')
         self.logger.info(f'Model parameter:\n{info}')

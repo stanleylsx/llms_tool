@@ -188,7 +188,7 @@ class Train(BaseModels):
     def train_reward_model(self, test=False):
         self.logger.info(f'Load base model from {self.model_args.model_path}')
         model = self.load_base_model()
-        reward_model = self.load_reward_model(model, dir=self.training_args.output_dir)
+        reward_model = self.load_reward_model(model, vhead_dir=self.training_args.output_dir)
         if test and not self.has_vhead:
             raise Exception('Reward model is not correctly loaded.')
         if not self.has_vhead:
