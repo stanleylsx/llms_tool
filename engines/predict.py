@@ -27,7 +27,9 @@ class Predictor(BaseModels):
         self.generating_args = config.generating_args
         self.prompt_template = data_manager.prompt_template
         self.metrics = Metrics(data_manager, logger)
-        self.load_adapter()
+        self.logger.info(f'Load base model from {self.model_args.model_path}')
+        self.model = self.load_base_model()
+        self.model = self.load_adapter(self.model, adapter_dir=self.model_args.checkpoint_dir)
         self.logger.info(f'Model struct:\n{self.model}')
         self.model.eval()
 
@@ -211,7 +213,7 @@ class Predictor(BaseModels):
                 eos_tokens = self.tokenizer.eos_token
             output = re.sub(make_regex('|'.join(eos_tokens)) + '$', '', output)
             outputs.append(output)
-            results.append({'Input': prompt, 'Output': output})
+            results.append({'Input': prompt, 'Output': output.strip()})
         with open(self.training_args.output_dir + '/test_results.json', 'w', encoding='utf-8') as f:
             json.dump(results, f, ensure_ascii=False, indent=2)
         self.logger.info(f'Saved test results to {self.training_args.output_dir} + /test_results.json')

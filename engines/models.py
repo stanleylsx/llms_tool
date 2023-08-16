@@ -30,48 +30,34 @@ class BaseModels:
         self.data_manager = data_manager
         self.has_peft = False
         self.has_vhead = False
-        logger.info(f'Load model from {self.model_args.model_path}')
-        self.model = self.load_base_model()
 
-    def load_adapter(self):
-        def load(dir):
-            if os.path.exists(os.path.join(dir, WEIGHTS_NAME)) and os.path.exists(os.path.join(dir, CONFIG_NAME)):
-                self.logger.info(f'Found adapter model at {dir} and load it.')
-                self.has_peft = True
-                self.model = PeftModel.from_pretrained(self.model, self.training_args.output_dir)
-                if self.mode in ('merge_peft_model', 'save_quantized_model'):
-                    self.logger.info('Merge peft model.')
-                    self.model = self.model.merge_and_unload()
-            else:
-                self.logger.info(f'The given dir: {dir} may be not have adapter checkpoint.')
-        if self.model_args.checkpoint_dir is not None:
-            load(self.model_args.checkpoint_dir)
-        if not self.has_peft:
-            load(self.training_args.output_dir)
-        if not self.has_peft:
-            self.logger.info('Checkpoint is not found, load the original model.')
+    def load_adapter(self, model, adapter_dir):
+        if adapter_dir is None:
+            return model
+        if os.path.exists(os.path.join(adapter_dir, WEIGHTS_NAME)) and os.path.exists(os.path.join(adapter_dir, CONFIG_NAME)):
+            self.logger.info(f'Found adapter model at {adapter_dir} and load it.')
+            self.has_peft = True
+            model = PeftModel.from_pretrained(model, adapter_dir)
+            if self.mode in ('merge_peft_model', 'save_quantized_model'):
+                self.logger.info('Merge peft model.')
+                model = model.merge_and_unload()
+        else:
+            self.logger.info(f'The given dir: {adapter_dir} may be not have adapter checkpoint.')
+        return model
 
-    def load_reward_model(self):
-        def load(dir):
-            if os.path.exists(os.path.join(dir, 'vhead.bin')):
-                self.logger.info(f'Found v_head model at {dir} and load it.')
-                self.load_adapter()
-                self.has_vhead = True
-                if self.model_args.model_type == 'chatglm' and any(
-                        key.endswith('rotary_pos_emb') for key, _ in self.model.named_modules()):
-                    self.model.lm_head = self.model.transformer.output_layer
-                self.model = AutoModelForCausalLMWithValueHead.from_pretrained(self.model)
-                file = os.path.join(self.training_args.output_dir, 'vhead.bin')
-                state_dict = torch.load(file)
-                self.model.load_state_dict(state_dict, strict=False)
-            else:
-                self.logger.info(f'The given dir: {dir} may be not have v_head checkpoint.')
-        if self.model_args.checkpoint_dir is not None:
-            load(self.model_args.checkpoint_dir)
-        if not self.has_peft:
-            load(self.training_args.output_dir)
-        if not self.has_peft:
-            self.logger.info('Reward checkpoint is not found.')
+    def load_reward_model(self, model, vhead_dir):
+        if os.path.exists(vhead_path := os.path.join(vhead_dir, 'vhead.bin')):
+            self.logger.info(f'Found v_head model at {vhead_dir} and load it.')
+            model = self.load_adapter(model, adapter_dir=vhead_dir)
+            self.has_vhead = True
+            if self.model_args.model_type == 'chatglm' and any(
+                    key.endswith('rotary_pos_emb') for key, _ in model.named_modules()):
+                model.lm_head = model.transformer.output_layer
+            model = AutoModelForCausalLMWithValueHead.from_pretrained(model)
+            model.load_state_dict(torch.load(vhead_path), strict=False)
+        else:
+            self.logger.info(f'The given dir: {vhead_dir} may be not have v_head checkpoint.')
+        return model
 
     def load_base_model(self):
         config_kwargs = {'cache_dir': self.model_args.cache_dir,
@@ -167,14 +153,23 @@ class BaseModels:
         return model
 
     def save_quantized_model(self):
-        self.load_adapter()
+        self.logger.info(f'Load base model from {self.model_args.model_path}')
+        model = self.load_base_model()
+        model = self.load_adapter(model, adapter_dir=self.model_args.checkpoint_dir)
         self.logger.info('Saving quantized model.')
-        self.model.save_pretrained(self.model_args.quantized_or_merged_output_dir)
+        model.save_pretrained(self.model_args.quantized_or_merged_output_dir)
         self.tokenizer.save_pretrained(self.model_args.quantized_or_merged_output_dir)
         self.logger.info(f'Quantize done, model saved to {self.model_args.quantized_or_merged_output_dir}')
 
     def merge_peft_model(self):
-        self.load_adapter()
+        if self.model_args.checkpoint_dir is None:
+            self.logger.error(f'checkpoint_dir is None.')
+        if not os.path.exists(os.path.join(self.model_args.checkpoint_dir, WEIGHTS_NAME)) \
+                and os.path.exists(os.path.join(self.model_args.checkpoint_dir, CONFIG_NAME)):
+            self.logger.error(f'Peft checkpoint not found at {self.model_args.checkpoint_dir}.')
+        self.logger.info(f'Load base model from {self.model_args.model_path}')
+        model = self.load_base_model()
+        model = self.load_adapter(model, adapter_dir=self.model_args.checkpoint_dir)
         if not self.has_peft:
             self.logger.error('Peft checkpoint not found.')
         self.logger.info(f'Base model: {self.model_args.model_type}')
@@ -183,11 +178,13 @@ class BaseModels:
         tokenizer = self.data_manager.load_tokenizer(self.model_args.checkpoint_dir)
         self.logger.info('Saving to Hugging Face format...')
         tokenizer.save_pretrained(self.model_args.quantized_or_merged_output_dir)
-        self.model.save_pretrained(self.model_args.quantized_or_merged_output_dir)
+        model.save_pretrained(self.model_args.quantized_or_merged_output_dir)
         self.logger.info(f'Merge done, model saved to {self.model_args.quantized_or_merged_output_dir}')
 
     def show_model_info(self):
-        self.load_adapter()
-        info = summary(self.model, max_level=3)
-        self.logger.info(f'Model struct:\n{self.model}')
+        self.logger.info(f'Load base model from {self.model_args.model_path}')
+        model = self.load_base_model()
+        model = self.load_adapter(model, adapter_dir=self.model_args.checkpoint_dir)
+        info = summary(model, max_level=3)
+        self.logger.info(f'Model struct:\n{model}')
         self.logger.info(f'Model parameter:\n{info}')
