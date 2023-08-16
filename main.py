@@ -33,7 +33,8 @@ if __name__ == '__main__':
         train.train_reward_model()
     elif mode == 'ppo_train':
         # 奖励模型强化训练
-        pass
+        train = Train(data_manager, config, logger)
+        train.train_ppo()
     elif mode == 'web_inference':
         # 网页端测试模型
         predict = Predictor(data_manager, config, logger)

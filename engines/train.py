@@ -116,27 +116,29 @@ class Train(BaseModels):
             model.print_trainable_parameters()
         return model
 
-    def set_train_enviroment(self):
+    def set_train_enviroment(self, model):
         if self.training_args.gradient_checkpointing:
-            self.model.gradient_checkpointing_enable()
-            self.model.config.use_cache = False
+            model.gradient_checkpointing_enable()
+            model.config.use_cache = False
         else:
-            self.model.config.use_cache = True
+            model.config.use_cache = True
 
         try:
-            self.model.enable_input_require_grads()
+            model.enable_input_require_grads()
         except:
             self.logger.warning('Could not enable input require_grads on model, skipping.')
 
         if torch.cuda.device_count() > 1:
             # Keeps Trainer from trying its own DataParallelism when more than 1 gpu is available
-            self.model.is_parallelizable = True
-            self.model.model_parallel = True
+            model.is_parallelizable = True
+            model.model_parallel = True
 
     def supervised_fine_tuning(self):
-        self.model = self.construct_base_model(self.model)
-        self.logger.info(f'Model struct:\n{self.model}')
-        self.set_train_enviroment()
+        self.logger.info(f'Load base model from {self.model_args.model_path}')
+        model = self.load_base_model()
+        model = self.construct_base_model(model)
+        self.logger.info(f'Model struct:\n{model}')
+        self.set_train_enviroment(model)
 
         train_dataset, eval_dataset = self.data_manager.prepare_dataset()
 
@@ -146,7 +148,7 @@ class Train(BaseModels):
             label_pad_token_id=self.data_manager.label_pad_token_id,
         )
         trainer = SFTTrainer(
-            model=self.model,
+            model=model,
             args=self.training_args,
             train_dataset=train_dataset if self.training_args.do_train else None,
             tokenizer=self.tokenizer,
@@ -166,8 +168,8 @@ class Train(BaseModels):
         self.logger.info(f'Training metrics: {metrics}')
         trainer.log_metrics('train', metrics)
         trainer.save_metrics('train', metrics)
-        trainer.save_state()
         self.logger.info(f'Saving model checkpoint to {self.training_args.output_dir}')
+        trainer.save_state()
         trainer.save_model()
 
         if self.training_args.do_eval and eval_dataset:
@@ -184,25 +186,27 @@ class Train(BaseModels):
             trainer.save_metrics('eval', metrics)
 
     def train_reward_model(self, test=False):
-        self.load_reward_model()
+        self.logger.info(f'Load base model from {self.model_args.model_path}')
+        model = self.load_base_model()
+        reward_model = self.load_reward_model(model, dir=self.training_args.output_dir)
         if test and not self.has_vhead:
             raise Exception('Reward model is not correctly loaded.')
         if not self.has_vhead:
-            self.model = self.construct_base_model(self.model)
+            model = self.construct_base_model(model)
             if self.model_args.model_type == 'chatglm' and any(
-                    key.endswith('rotary_pos_emb') for key, _ in self.model.named_modules()):
-                self.model.lm_head = self.model.transformer.output_layer
-            self.model = AutoModelForCausalLMWithValueHead.from_pretrained(self.model)
-        self.logger.info(f'Model struct:\n{self.model}')
-        print_trainable_parameters(self.model, self.logger)
-        self.set_train_enviroment()
+                    key.endswith('rotary_pos_emb') for key, _ in model.named_modules()):
+                model.lm_head = model.transformer.output_layer
+            reward_model = AutoModelForCausalLMWithValueHead.from_pretrained(model)
+        self.logger.info(f'Model struct:\n{reward_model}')
+        print_trainable_parameters(reward_model, self.logger)
+        self.set_train_enviroment(model)
         data_collator = DataCollatorForRewardModelTraining(tokenizer=self.tokenizer, return_tensors='pt')
         if not test:
             train_dataset, eval_dataset = self.data_manager.prepare_dataset()
             self.training_args.remove_unused_columns = False
             trainer = RewardTrainer(
                 model_type=self.model_args.model_type,
-                model=self.model,
+                model=reward_model,
                 args=self.training_args,
                 train_dataset=train_dataset if self.training_args.do_train else None,
                 tokenizer=self.tokenizer,
@@ -214,8 +218,8 @@ class Train(BaseModels):
             self.logger.info(f'Training metrics: {metrics}')
             trainer.log_metrics('train', metrics)
             trainer.save_metrics('train', metrics)
-            trainer.save_state()
             self.logger.info(f'Saving model checkpoint to {self.training_args.output_dir}')
+            trainer.save_state()
             trainer.save_model()
 
             if self.training_args.do_eval and eval_dataset:
@@ -229,7 +233,7 @@ class Train(BaseModels):
             self.training_args.remove_unused_columns = False
             trainer = RewardTrainer(
                 model_type=self.model_args.model_type,
-                model=self.model,
+                model=reward_model,
                 args=self.training_args,
                 tokenizer=self.tokenizer,
                 data_collator=data_collator,
@@ -239,3 +243,6 @@ class Train(BaseModels):
             self.logger.info(f'Test metrics: {metrics}')
             trainer.log_metrics('test', metrics)
             trainer.save_metrics('test', metrics)
+
+    def train_ppo(self):
+        pass

@@ -27,7 +27,9 @@ class Predictor(BaseModels):
         self.generating_args = config.generating_args
         self.prompt_template = data_manager.prompt_template
         self.metrics = Metrics(data_manager, logger)
-        self.load_adapter()
+        self.logger.info(f'Load base model from {self.model_args.model_path}')
+        model = self.load_base_model()
+        self.model = self.load_adapter(model)
         self.logger.info(f'Model struct:\n{self.model}')
         self.model.eval()
 
