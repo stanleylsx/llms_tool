@@ -38,7 +38,7 @@ class BaseModels:
             self.logger.info(f'Found adapter model at {adapter_dir} and load it.')
             self.has_peft = True
             model = PeftModel.from_pretrained(model, adapter_dir)
-            if self.mode in ('web_inference', 'merge_peft_model', 'save_quantized_model'):
+            if self.mode in ('merge_peft_model', 'save_quantized_model'):
                 self.logger.info('Merge peft model.')
                 model = model.merge_and_unload()
         else:
