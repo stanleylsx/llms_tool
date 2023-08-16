@@ -38,5 +38,7 @@ class Configure:
         if not os.path.exists(self.training_args.output_dir):
             print('Creating output_dir fold.')
             os.makedirs(self.training_args.output_dir)
+
+        if not os.path.exists('./logs'):
             print('Creating log fold.')
             os.mkdir('./logs')
