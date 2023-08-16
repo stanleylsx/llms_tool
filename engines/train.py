@@ -116,7 +116,7 @@ class Train(BaseModels):
             model.print_trainable_parameters()
         return model
 
-    def set_train_enviroment(self, model):
+    def set_train_environment(self, model):
         if self.training_args.gradient_checkpointing:
             model.gradient_checkpointing_enable()
             model.config.use_cache = False
@@ -138,7 +138,7 @@ class Train(BaseModels):
         model = self.load_base_model()
         model = self.construct_base_model(model)
         self.logger.info(f'Model struct:\n{model}')
-        self.set_train_enviroment(model)
+        self.set_train_environment(model)
 
         train_dataset, eval_dataset = self.data_manager.prepare_dataset()
 
@@ -199,7 +199,7 @@ class Train(BaseModels):
             reward_model = AutoModelForCausalLMWithValueHead.from_pretrained(model)
         self.logger.info(f'Model struct:\n{reward_model}')
         print_trainable_parameters(reward_model, self.logger)
-        self.set_train_enviroment(model)
+        self.set_train_environment(model)
         data_collator = DataCollatorForRewardModelTraining(tokenizer=self.tokenizer, return_tensors='pt')
         if not test:
             train_dataset, eval_dataset = self.data_manager.prepare_dataset()
