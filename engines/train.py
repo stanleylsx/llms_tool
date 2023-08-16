@@ -12,7 +12,7 @@ from peft import TaskType, get_peft_model
 from engines.utils.trainer import SFTTrainer, RewardTrainer
 from transformers import DataCollatorForSeq2Seq
 from engines.data import DataCollatorForRewardModelTraining
-from trl import AutoModelForCausalLMWithValueHead
+from trl import AutoModelForCausalLMWithValueHead, PPOConfig, set_seed
 import torch
 import math
 
@@ -245,4 +245,44 @@ class Train(BaseModels):
             trainer.save_metrics('test', metrics)
 
     def train_ppo(self):
-        pass
+        self.logger.info(f'Load base model from {self.model_args.model_path}')
+        model = self.load_base_model()
+        self.set_train_environment(model)
+
+        reward_model = self.load_reward_model(model, vhead_dir='checkpoint/rm')
+        reward_model = reward_model.merge_and_unload()
+        reward_model = self.construct_base_model(reward_model)
+
+        ppo_model = self.load_adapter(model, adapter_dir='checkpoint/sft')
+        ppo_model = ppo_model.merge_and_unload()
+        ppo_model = self.construct_base_model(ppo_model)
+        ppo_model = AutoModelForCausalLMWithValueHead.from_pretrained(ppo_model)
+
+        print_trainable_parameters(ppo_model, logger=self.logger)
+
+        train_dataset, eval_dataset = self.data_manager.prepare_dataset()
+
+        data_collator = DataCollatorForSeq2Seq(
+            tokenizer=self.tokenizer,
+            return_tensors='pt',
+            label_pad_token_id=self.data_manager.label_pad_token_id,
+        )
+
+        config = PPOConfig(
+            learning_rate=self.training_args.learning_rate,
+            batch_size=self.training_args.per_device_train_batch_size * self.training_args.gradient_accumulation_steps,
+            mini_batch_size=self.training_args.per_device_train_batch_size,
+            gradient_accumulation_steps=self.training_args.gradient_accumulation_steps,
+            optimize_cuda_cache=True,
+            target_kl=self.training_args.target_kl,
+            ppo_epochs=self.training_args.ppo_epochs,
+            seed=self.training_args.seed,
+            init_kl_coef=self.training_args.init_kl_coef,
+            adap_kl_ctrl=self.training_args.adap_kl_ctrl,
+        )
+
+        # Set seed before initializing value head for deterministic eval
+        set_seed(config.seed)
+
+
+

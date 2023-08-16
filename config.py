@@ -6,7 +6,7 @@ import torch
 # （待完成）预训练：          pretrain
 # 模型指令微调：              sft_train
 # 奖励模型训练：              rm_train
-# （待完成）奖励模型强化训练： ppo_train
+# （ing）奖励模型强化训练：    ppo_train
 # 网页端测试模型：            web_inference
 # 终端模型交互：              terminal_inference
 # 融合模型：                 merge_peft_model
@@ -14,7 +14,7 @@ import torch
 # 存储量化的模型：            save_quantized_model
 # 模型效果测试及评估：        sft_batch_test
 # 奖励模型效果测试及评估：     rm_batch_test
-mode = 'web_inference'
+mode = 'ppo_train'
 
 
 @dataclass
@@ -32,7 +32,7 @@ class ModelArguments:
         }
     )
     model_path: str = field(
-        default='D:\projects\LLM_models\LLM_chat_models\chatglm2-6b',
+        default='D:\projects\LLM_models\LLM_chat_models\chatglm2-6b-32k',
         metadata={
             # 从huggingface.co/models上下载的模型保存到本地的路径。
             'help': 'Local path to pretrained model or model identifier from huggingface.co/models.'
@@ -213,7 +213,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         }
     )
     output_dir: str = field(
-        default='checkpoint/adapter_model',
+        default='checkpoint/ppo',
         metadata={
             'help': 'The output directory where the model predictions and checkpoints will be written.'
         }
@@ -480,6 +480,36 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         default=128,
         metadata={
             'help': 'The hidden size of the prompt encoder'
+        }
+    )
+    # 下面都是RLHF的设置参数
+    seed: Optional[int] = field(
+        default=0,
+        metadata={
+            'help': 'the seed'
+        }
+    )
+    init_kl_coef: Optional[float] = field(
+        default=0.2,
+        metadata={
+            'help': 'Initial KL penalty coefficient (used for adaptive and linear control)'
+        }
+    )
+    adap_kl_ctrl: Optional[bool] = field(
+        default=True, metadata={
+            'help': 'Use adaptive KL control, otherwise linear'
+        }
+    )
+    target_kl: Optional[float] = field(
+        default=0.1,
+        metadata={
+            'help': 'The kl target for early stopping'
+        }
+    )
+    ppo_epochs: Optional[int] = field(
+        default=4,
+        metadata={
+            'help': 'Number of optimisation epochs per batch of samples'
         }
     )
 

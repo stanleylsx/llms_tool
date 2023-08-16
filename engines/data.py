@@ -211,6 +211,8 @@ class DataManager:
                 train_dataset = propocess_dataset(self.preprocess_train_supervised_fine_tuning_dataset, train_dataset)
             elif self.mode == 'rm_train':
                 train_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, train_dataset)
+            elif self.mode == 'ppo_train':
+                train_dataset = propocess_dataset(self.preprocess_eval_supervised_fine_tuning_dataset, train_dataset)
             self.logger.debug(f'Train dataset nums: {len(train_dataset)}')
 
             eval_dataset = None
