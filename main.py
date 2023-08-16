@@ -16,7 +16,7 @@ if __name__ == '__main__':
 
     config = Configure()
     mode = config.mode
-    log_name = config.training_args.output_dir + '/logs/' + mode + '.log'
+    log_name = './logs/' + mode + '.log'
     logger.add(log_name, encoding='utf-8')
 
     data_manager = DataManager(config, logger)

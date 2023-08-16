@@ -39,4 +39,4 @@ class Configure:
             print('Creating output_dir fold.')
             os.makedirs(self.training_args.output_dir)
             print('Creating log fold.')
-            os.mkdir(self.training_args.output_dir + '/logs')
+            os.mkdir('./logs')
