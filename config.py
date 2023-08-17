@@ -14,7 +14,7 @@ import torch
 # 存储量化的模型：            save_quantized_model
 # 模型效果测试及评估：        sft_batch_test
 # 奖励模型效果测试及评估：     rm_batch_test
-mode = 'ppo_train'
+mode = 'web_inference'
 
 
 @dataclass
@@ -32,7 +32,7 @@ class ModelArguments:
         }
     )
     model_path: str = field(
-        default='D:\projects\LLM_models\LLM_chat_models\chatglm2-6b-32k',
+        default='/home/llm_models/ChatGLM/ChatGLM2-6B-32k',
         metadata={
             # 从huggingface.co/models上下载的模型保存到本地的路径。
             'help': 'Local path to pretrained model or model identifier from huggingface.co/models.'
@@ -213,7 +213,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         }
     )
     output_dir: str = field(
-        default='checkpoint/ppo',
+        default='checkpoint/sft',
         metadata={
             'help': 'The output directory where the model predictions and checkpoints will be written.'
         }
@@ -225,7 +225,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         }
     )
     do_eval: bool = field(
-        default=True,
+        default=False,
         metadata={
             'help': 'Whether to run eval on the dev set.'
         }
