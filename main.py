@@ -35,6 +35,14 @@ if __name__ == '__main__':
         # 奖励模型强化训练
         train = Train(data_manager, config, logger)
         train.train_ppo()
+    elif mode == 'sft_batch_test':
+        # 微调模型效果测试
+        train = Train(data_manager, config, logger)
+        train.supervised_fine_tuning(test=True)
+    elif mode == 'rm_batch_test':
+        # 奖励模型效果测试
+        train = Train(data_manager, config, logger)
+        train.train_reward_model(test=True)
     elif mode == 'web_inference':
         # 网页端测试模型
         predict = Predictor(data_manager, config, logger)
@@ -57,11 +65,3 @@ if __name__ == '__main__':
             raise ValueError('Quantization bit not set.')
         model = BaseModels(data_manager, config, logger)
         model.save_quantized_model()
-    elif mode == 'sft_batch_test':
-        # 模型效果测试
-        predictor = Predictor(data_manager, config, logger)
-        predictor.sft_batch_test()
-    elif mode == 'rm_batch_test':
-        # 奖励模型效果测试
-        train = Train(data_manager, config, logger)
-        train.train_reward_model(test=True)

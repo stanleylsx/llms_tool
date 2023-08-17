@@ -241,7 +241,9 @@ class DataManager:
         else:
             raw_datasets = self.load_datasets_from_files(test=True)
             test_dataset = raw_datasets['test']
-            if self.mode == 'rm_batch_test':
+            if self.mode == 'sft_batch_test':
+                test_dataset = propocess_dataset(self.preprocess_eval_supervised_fine_tuning_dataset, test_dataset, False)
+            elif self.mode == 'rm_batch_test':
                 test_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, test_dataset, False)
             self.logger.debug(f'Test dataset nums: {len(test_dataset)}')
             return test_dataset
