@@ -12,7 +12,8 @@ from peft import TaskType, get_peft_model
 from engines.utils.trainer import SFTTrainer, RewardTrainer
 from transformers import DataCollatorForSeq2Seq
 from engines.data import DataCollatorForRewardModelTraining
-from trl import AutoModelForCausalLMWithValueHead, PPOConfig, set_seed
+from trl import AutoModelForCausalLMWithValueHead, PPOConfig, set_seed, PPOTrainer
+from tqdm import tqdm
 import torch
 import math
 
@@ -247,25 +248,29 @@ class Train(BaseModels):
     def train_ppo(self):
         self.logger.info(f'Load base model from {self.model_args.model_path}')
         model = self.load_base_model()
-        self.set_train_environment(model)
-
         reward_model = self.load_reward_model(model, vhead_dir='checkpoint/rm')
-        reward_model = reward_model.merge_and_unload()
-        reward_model = self.construct_base_model(reward_model)
+        self.logger.info(f'Reward model struct:\n{reward_model}')
 
-        ppo_model = self.load_adapter(model, adapter_dir='checkpoint/sft')
-        ppo_model = ppo_model.merge_and_unload()
-        ppo_model = self.construct_base_model(ppo_model)
+        sft_model = self.load_adapter(model, adapter_dir='checkpoint/sft')
+
+        if self.model_args.model_type == 'chatglm' and any(
+                key.endswith('rotary_pos_emb') for key, _ in sft_model.named_modules()):
+            sft_model.lm_head = sft_model.transformer.output_layer
+
+        ref_model = AutoModelForCausalLMWithValueHead.from_pretrained(sft_model)
+
+        ppo_model = self.construct_base_model(sft_model)
         ppo_model = AutoModelForCausalLMWithValueHead.from_pretrained(ppo_model)
-
+        self.set_train_environment(ppo_model)
+        self.logger.info(f'PPO model struct:\n{ppo_model}')
         print_trainable_parameters(ppo_model, logger=self.logger)
 
-        train_dataset, eval_dataset = self.data_manager.prepare_dataset()
+        train_dataset, _ = self.data_manager.prepare_dataset()
 
         data_collator = DataCollatorForSeq2Seq(
             tokenizer=self.tokenizer,
             return_tensors='pt',
-            label_pad_token_id=self.data_manager.label_pad_token_id,
+            label_pad_token_id=self.tokenizer.pad_token_id
         )
 
         config = PPOConfig(
@@ -284,5 +289,23 @@ class Train(BaseModels):
         # Set seed before initializing value head for deterministic eval
         set_seed(config.seed)
 
+        ppo_trainer = PPOTrainer(
+            config=config,
+            model=ppo_model,
+            ref_model=ref_model,
+            tokenizer=self.tokenizer,
+            dataset=train_dataset,
+            data_collator=data_collator
+        )
 
+        gen_kwargs = self.generating_args.to_dict()
+        gen_kwargs = self.data_manager.generating_args_preprocess(gen_kwargs)
 
+        for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
+            if epoch >= config.total_ppo_epochs:
+                break
+
+            querys = batch['input_ids']
+            responses = ppo_trainer.generate(querys, return_prompt=False, **gen_kwargs)
+            batch['response'] = self.tokenizer.batch_decode(responses, skip_special_tokens=True)
+            print('')

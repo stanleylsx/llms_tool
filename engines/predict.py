@@ -25,6 +25,7 @@ class Predictor(BaseModels):
         self.logger = logger
         self.data_args = config.data_args
         self.generating_args = config.generating_args
+        self.data_manager = data_manager
         self.prompt_template = data_manager.prompt_template
         self.metrics = Metrics(data_manager, logger)
         self.logger.info(f'Load base model from {self.model_args.model_path}')
@@ -32,18 +33,6 @@ class Predictor(BaseModels):
         self.model = self.load_adapter(self.model, adapter_dir=self.model_args.checkpoint_dir)
         self.logger.info(f'Model struct:\n{self.model}')
         self.model.eval()
-
-    def generating_args_preprocess(self, gen_kwargs):
-        if self.model_args.model_type == 'aquila':
-            self.tokenizer.add_special_tokens({'eos_token': '###'})
-            eos_token_id = (8090, 100007)
-            gen_kwargs['eos_token_id'] = eos_token_id
-        elif self.model_args.model_type == 'internlm':
-            eos_token_id = (2, 103028)
-            gen_kwargs['eos_token_id'] = eos_token_id
-        elif self.model_args.model_type == 'qwen':
-            gen_kwargs['eos_token_id'] = 151645
-        return gen_kwargs
 
     def web_inference(self):
         def predict(input, chatbot, history, max_new_tokens, top_p, temperature):
@@ -56,7 +45,7 @@ class Predictor(BaseModels):
             input_ids = input_ids.to(self.model.device)
             streamer = TextIteratorStreamer(self.tokenizer, timeout=60.0, skip_prompt=True, skip_special_tokens=True)
             gen_kwargs = self.generating_args.to_dict()
-            gen_kwargs = self.generating_args_preprocess(gen_kwargs)
+            gen_kwargs = self.data_manager.generating_args_preprocess(gen_kwargs)
             gen_kwargs.update({
                 'input_ids': input_ids,
                 'temperature': temperature,
@@ -141,7 +130,7 @@ class Predictor(BaseModels):
             input_ids = input_ids.to(self.model.device)
             streamer = TextIteratorStreamer(self.tokenizer, timeout=60.0, skip_prompt=True, skip_special_tokens=True)
             gen_kwargs = self.generating_args.to_dict()
-            gen_kwargs = self.generating_args_preprocess(gen_kwargs)
+            gen_kwargs = self.data_manager.generating_args_preprocess(gen_kwargs)
             gen_kwargs.update({
                 'input_ids': input_ids,
                 'streamer': streamer
