@@ -38,7 +38,7 @@ class BaseModels:
             self.logger.info(f'Found adapter model at {adapter_dir} and load it.')
             self.has_peft = True
             model = PeftModel.from_pretrained(model, adapter_dir)
-            if self.mode in ('merge_peft_model', 'save_quantized_model'):
+            if self.mode in ('merge_peft_model', 'save_quantized_model', 'ppo_train'):
                 self.logger.info('Merge peft model.')
                 model = model.merge_and_unload()
         else:
@@ -163,7 +163,7 @@ class BaseModels:
 
     def merge_peft_model(self):
         if self.model_args.checkpoint_dir is None:
-            self.logger.error(f'checkpoint_dir is None.')
+            self.logger.error('checkpoint_dir is None.')
         if not os.path.exists(os.path.join(self.model_args.checkpoint_dir, WEIGHTS_NAME)) \
                 and os.path.exists(os.path.join(self.model_args.checkpoint_dir, CONFIG_NAME)):
             self.logger.error(f'Peft checkpoint not found at {self.model_args.checkpoint_dir}.')

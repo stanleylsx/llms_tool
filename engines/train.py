@@ -12,7 +12,8 @@ from peft import TaskType, get_peft_model
 from engines.utils.trainer import SFTTrainer, RewardTrainer
 from transformers import DataCollatorForSeq2Seq
 from engines.data import DataCollatorForRewardModelTraining
-from trl import AutoModelForCausalLMWithValueHead, PPOConfig, set_seed
+from trl import AutoModelForCausalLMWithValueHead, PPOConfig, set_seed, PPOTrainer
+from tqdm import tqdm
 import torch
 import math
 
@@ -133,57 +134,72 @@ class Train(BaseModels):
             model.is_parallelizable = True
             model.model_parallel = True
 
-    def supervised_fine_tuning(self):
+    def supervised_fine_tuning(self, test=False):
         self.logger.info(f'Load base model from {self.model_args.model_path}')
         model = self.load_base_model()
-        model = self.construct_base_model(model)
-        self.logger.info(f'Model struct:\n{model}')
-        self.set_train_environment(model)
-
-        train_dataset, eval_dataset = self.data_manager.prepare_dataset()
-
         data_collator = DataCollatorForSeq2Seq(
             tokenizer=self.tokenizer,
             return_tensors='pt',
             label_pad_token_id=self.data_manager.label_pad_token_id,
         )
-        trainer = SFTTrainer(
-            model=model,
-            args=self.training_args,
-            train_dataset=train_dataset if self.training_args.do_train else None,
-            tokenizer=self.tokenizer,
-            data_collator=data_collator,
-        )
-        self.logger.info('*** Start training. ***')
-        checkpoint = None
-        if self.training_args.resume_from_checkpoint:
-            checkpoint = self.training_args.output_dir
-            self.logger.info(f'Resume checkpoint from {checkpoint}')
-        try:
-            trainer_result = trainer.train(resume_from_checkpoint=checkpoint)
-        except ValueError:
-            self.logger.warning(f"Can't find a valid checkpoint at {checkpoint}")
-            trainer_result = trainer.train()
-        metrics = trainer_result.metrics
-        self.logger.info(f'Training metrics: {metrics}')
-        trainer.log_metrics('train', metrics)
-        trainer.save_metrics('train', metrics)
-        self.logger.info(f'Saving model checkpoint to {self.training_args.output_dir}')
-        trainer.save_state()
-        trainer.save_model()
-
-        if self.training_args.do_eval and eval_dataset:
-            self.logger.info('*** Start evaluating. ***')
-            gen_kwargs = self.generating_args.to_dict()
-            metrics = trainer.evaluate(eval_dataset=eval_dataset, **gen_kwargs)
+        if not test:
+            model = self.construct_base_model(model)
+            self.set_train_environment(model)
+            self.logger.info(f'Model struct:\n{model}')
+            train_dataset, eval_dataset = self.data_manager.prepare_dataset()
+            trainer = SFTTrainer(
+                model=model,
+                args=self.training_args,
+                train_dataset=train_dataset if self.training_args.do_train else None,
+                tokenizer=self.tokenizer,
+                data_collator=data_collator,
+            )
+            self.logger.info('*** Start training. ***')
+            checkpoint = None
+            if self.training_args.resume_from_checkpoint:
+                checkpoint = self.training_args.output_dir
+                self.logger.info(f'Resume checkpoint from {checkpoint}')
             try:
-                perplexity = math.exp(metrics['eval_loss'])
-            except OverflowError:
-                perplexity = float('inf')
+                trainer_result = trainer.train(resume_from_checkpoint=checkpoint)
+            except ValueError:
+                self.logger.warning(f"Can't find a valid checkpoint at {checkpoint}")
+                trainer_result = trainer.train()
+            metrics = trainer_result.metrics
+            self.logger.info(f'Training metrics: {metrics}')
+            trainer.log_metrics('train', metrics)
+            trainer.save_metrics('train', metrics)
+            self.logger.info(f'Saving model checkpoint to {self.training_args.output_dir}')
+            trainer.save_state()
+            trainer.save_model()
+
+            if self.training_args.do_eval and eval_dataset:
+                self.logger.info('*** Start evaluating. ***')
+                gen_kwargs = self.generating_args.to_dict()
+                metrics = trainer.evaluate(eval_dataset=eval_dataset, **gen_kwargs)
+                self.logger.info(f'Evaluating metrics: {metrics}')
+                trainer.log_metrics('eval', metrics)
+                trainer.save_metrics('eval', metrics)
+        else:
+            model = self.load_adapter(model, adapter_dir=self.training_args.output_dir)
+            model.eval()
+            self.logger.info(f'Model struct:\n{model}')
+            test_dataset = self.data_manager.prepare_dataset(test=True)
+            trainer = SFTTrainer(
+                model=model,
+                args=self.training_args,
+                tokenizer=self.tokenizer,
+                data_collator=data_collator,
+                compute_metrics=self.metrics.computer_supervised_fine_tuning_metric
+            )
+            gen_kwargs = self.generating_args.to_dict()
+            self.logger.info('*** Start testing. ***')
+            test_results = trainer.predict(test_dataset, metric_key_prefix='test', **gen_kwargs)
+            metrics = test_results.metrics
+            perplexity = math.exp(metrics['test_loss'])
             metrics['perplexity'] = perplexity
-            self.logger.info(f'Evaluating metrics: {metrics}')
-            trainer.log_metrics('eval', metrics)
-            trainer.save_metrics('eval', metrics)
+            self.logger.info(f'Test metrics: {metrics}')
+            trainer.log_metrics('test', metrics)
+            trainer.save_metrics('test', metrics)
 
     def train_reward_model(self, test=False):
         self.logger.info(f'Load base model from {self.model_args.model_path}')
@@ -191,17 +207,17 @@ class Train(BaseModels):
         reward_model = self.load_reward_model(model, vhead_dir=self.training_args.output_dir)
         if test and not self.has_vhead:
             raise Exception('Reward model is not correctly loaded.')
+        self.set_train_environment(reward_model)
         if not self.has_vhead:
             model = self.construct_base_model(model)
             if self.model_args.model_type == 'chatglm' and any(
                     key.endswith('rotary_pos_emb') for key, _ in model.named_modules()):
                 model.lm_head = model.transformer.output_layer
             reward_model = AutoModelForCausalLMWithValueHead.from_pretrained(model)
-        self.set_train_environment(reward_model)
         self.logger.info(f'Model struct:\n{reward_model}')
-        print_trainable_parameters(reward_model, self.logger)
         data_collator = DataCollatorForRewardModelTraining(tokenizer=self.tokenizer, return_tensors='pt')
         if not test:
+            print_trainable_parameters(reward_model, self.logger)
             train_dataset, eval_dataset = self.data_manager.prepare_dataset()
             self.training_args.remove_unused_columns = False
             trainer = RewardTrainer(
@@ -229,6 +245,7 @@ class Train(BaseModels):
                 trainer.log_metrics('eval', metrics)
                 trainer.save_metrics('eval', metrics)
         else:
+            reward_model.eval()
             test_dataset = self.data_manager.prepare_dataset(test=True)
             self.training_args.remove_unused_columns = False
             trainer = RewardTrainer(
@@ -239,7 +256,9 @@ class Train(BaseModels):
                 data_collator=data_collator,
                 compute_metrics=self.metrics.computer_training_reward_metric
             )
-            metrics = trainer.evaluate(test_dataset, metric_key_prefix='test')
+            self.logger.info('*** Start testing. ***')
+            test_results = trainer.predict(test_dataset, metric_key_prefix='test')
+            metrics = test_results.metrics
             self.logger.info(f'Test metrics: {metrics}')
             trainer.log_metrics('test', metrics)
             trainer.save_metrics('test', metrics)
@@ -247,25 +266,29 @@ class Train(BaseModels):
     def train_ppo(self):
         self.logger.info(f'Load base model from {self.model_args.model_path}')
         model = self.load_base_model()
-        self.set_train_environment(model)
-
         reward_model = self.load_reward_model(model, vhead_dir='checkpoint/rm')
-        reward_model = reward_model.merge_and_unload()
-        reward_model = self.construct_base_model(reward_model)
+        self.logger.info(f'Reward model struct:\n{reward_model}')
 
-        ppo_model = self.load_adapter(model, adapter_dir='checkpoint/sft')
-        ppo_model = ppo_model.merge_and_unload()
-        ppo_model = self.construct_base_model(ppo_model)
+        sft_model = self.load_adapter(model, adapter_dir='checkpoint/sft')
+
+        if self.model_args.model_type == 'chatglm' and any(
+                key.endswith('rotary_pos_emb') for key, _ in sft_model.named_modules()):
+            sft_model.lm_head = sft_model.transformer.output_layer
+
+        ref_model = AutoModelForCausalLMWithValueHead.from_pretrained(sft_model)
+
+        ppo_model = self.construct_base_model(sft_model)
         ppo_model = AutoModelForCausalLMWithValueHead.from_pretrained(ppo_model)
-
+        self.set_train_environment(ppo_model)
+        self.logger.info(f'PPO model struct:\n{ppo_model}')
         print_trainable_parameters(ppo_model, logger=self.logger)
 
-        train_dataset, eval_dataset = self.data_manager.prepare_dataset()
+        train_dataset, _ = self.data_manager.prepare_dataset()
 
         data_collator = DataCollatorForSeq2Seq(
             tokenizer=self.tokenizer,
             return_tensors='pt',
-            label_pad_token_id=self.data_manager.label_pad_token_id,
+            label_pad_token_id=self.tokenizer.pad_token_id
         )
 
         config = PPOConfig(
@@ -284,5 +307,26 @@ class Train(BaseModels):
         # Set seed before initializing value head for deterministic eval
         set_seed(config.seed)
 
+        ppo_trainer = PPOTrainer(
+            config=config,
+            model=ppo_model,
+            ref_model=ref_model,
+            tokenizer=self.tokenizer,
+            dataset=train_dataset,
+            data_collator=data_collator
+        )
 
+        gen_kwargs = self.generating_args.to_dict()
+        gen_kwargs = self.data_manager.generating_args_preprocess(gen_kwargs)
 
+        for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
+            if epoch >= config.total_ppo_epochs:
+                break
+
+            query_tensor = batch['input_ids']
+            a = self.tokenizer.batch_decode(query_tensor, skip_special_tokens=True)
+            query_tensor = [i.squeeze(0) for i in query_tensor]
+            responses = ppo_trainer.generate(query_tensor, return_prompt=False, **gen_kwargs)
+            s = self.tokenizer.batch_decode(responses, skip_special_tokens=True)
+            batch['response'] = self.tokenizer.batch_decode(responses, skip_special_tokens=True)
+            print('')

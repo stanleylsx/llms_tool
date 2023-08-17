@@ -6,17 +6,11 @@
 # @Software: PyCharm
 from transformers import TextIteratorStreamer
 from engines.utils.parse_text import parse_text
-from engines.utils.make_regex import make_regex
 from engines.utils.metrics import Metrics
 from engines.models import BaseModels
 from threading import Thread
-from tqdm import tqdm
 import gradio as gr
 import mdtex2html
-import torch
-import os
-import re
-import json
 
 
 class Predictor(BaseModels):
@@ -25,6 +19,7 @@ class Predictor(BaseModels):
         self.logger = logger
         self.data_args = config.data_args
         self.generating_args = config.generating_args
+        self.data_manager = data_manager
         self.prompt_template = data_manager.prompt_template
         self.metrics = Metrics(data_manager, logger)
         self.logger.info(f'Load base model from {self.model_args.model_path}')
@@ -32,18 +27,6 @@ class Predictor(BaseModels):
         self.model = self.load_adapter(self.model, adapter_dir=self.model_args.checkpoint_dir)
         self.logger.info(f'Model struct:\n{self.model}')
         self.model.eval()
-
-    def generating_args_preprocess(self, gen_kwargs):
-        if self.model_args.model_type == 'aquila':
-            self.tokenizer.add_special_tokens({'eos_token': '###'})
-            eos_token_id = (8090, 100007)
-            gen_kwargs['eos_token_id'] = eos_token_id
-        elif self.model_args.model_type == 'internlm':
-            eos_token_id = (2, 103028)
-            gen_kwargs['eos_token_id'] = eos_token_id
-        elif self.model_args.model_type == 'qwen':
-            gen_kwargs['eos_token_id'] = 151645
-        return gen_kwargs
 
     def web_inference(self):
         def predict(input, chatbot, history, max_new_tokens, top_p, temperature):
@@ -56,7 +39,7 @@ class Predictor(BaseModels):
             input_ids = input_ids.to(self.model.device)
             streamer = TextIteratorStreamer(self.tokenizer, timeout=60.0, skip_prompt=True, skip_special_tokens=True)
             gen_kwargs = self.generating_args.to_dict()
-            gen_kwargs = self.generating_args_preprocess(gen_kwargs)
+            gen_kwargs = self.data_manager.generating_args_preprocess(gen_kwargs)
             gen_kwargs.update({
                 'input_ids': input_ids,
                 'temperature': temperature,
@@ -141,7 +124,7 @@ class Predictor(BaseModels):
             input_ids = input_ids.to(self.model.device)
             streamer = TextIteratorStreamer(self.tokenizer, timeout=60.0, skip_prompt=True, skip_special_tokens=True)
             gen_kwargs = self.generating_args.to_dict()
-            gen_kwargs = self.generating_args_preprocess(gen_kwargs)
+            gen_kwargs = self.data_manager.generating_args_preprocess(gen_kwargs)
             gen_kwargs.update({
                 'input_ids': input_ids,
                 'streamer': streamer
@@ -173,50 +156,3 @@ class Predictor(BaseModels):
                 print('History has been removed.')
                 continue
             history = predict(query, history)
-
-    def sft_batch_test(self):
-        test_file = self.data_args.test_file
-        if test_file is None or not os.path.exists(test_file):
-            self.logger.error('Test file does not exist.')
-            raise ValueError('Test file does not exist.')
-        file_type = test_file.split('.')[-1]
-        gen_kwargs = self.generating_args.to_dict()
-        gen_kwargs = self.generating_args_preprocess(gen_kwargs)
-        with open(test_file, 'r', encoding='utf-8') as file:
-            if file_type == 'json':
-                datas = json.loads(file.read())
-            else:
-                datas = [line.rstrip('\n') for line in file.readlines() if line != '']
-        inputs, outputs, results = [], [], []
-        self.logger.info('*** Start test. ***')
-        for data in tqdm(datas):
-            if file_type == 'json':
-                if 'history' in data:
-                    history = data['history']
-                else:
-                    history = []
-                query, answer = data['instruction'], data['output']
-                query = query + data['input'] if data['input'] else query
-                prompt = self.prompt_template.get_prompt(query, history)
-                inputs.append(answer)
-            else:
-                prompt = self.prompt_template.get_prompt(data, [])
-            input_ids = self.tokenizer([prompt], return_tensors='pt')['input_ids']
-            generation_output = self.model.generate(
-                input_ids=torch.as_tensor(input_ids).to(self.model.device), **gen_kwargs)
-            output_ids = generation_output[0]
-            output = self.tokenizer.decode(output_ids, skip_special_tokens=True)
-            output = output.split(prompt)[-1]
-            if 'eos_token_id' in gen_kwargs:
-                eos_tokens = self.tokenizer.convert_ids_to_tokens(gen_kwargs['eos_token_id'])
-            else:
-                eos_tokens = self.tokenizer.eos_token
-            output = re.sub(make_regex('|'.join(eos_tokens)) + '$', '', output)
-            outputs.append(output)
-            results.append({'Input': prompt, 'Output': output.strip()})
-        with open(self.training_args.output_dir + '/test_results.json', 'w', encoding='utf-8') as f:
-            json.dump(results, f, ensure_ascii=False, indent=2)
-        self.logger.info(f'Saved test results to {self.training_args.output_dir} + /test_results.json')
-        if file_type == 'json':
-            metrics = self.metrics.computer_supervised_fine_tuning_metric(outputs, inputs)
-            self.logger.info(metrics)

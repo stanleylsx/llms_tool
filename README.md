@@ -211,16 +211,10 @@ quantization_bit: Optional[int] = field(
 * 奖励模型训练不支持第一代ChatGLM6B，因为项目用trl的AutoModelForCausalLMWithValueHead组件是基于CausalLM模型的。ChatGLM6B是基于Prefix LM实现的。
 
 ### Test
-如果跑指令微调的测试，需要在config.py中将mode修改为sft_batch_test，修改DataTrainingArguments中的test_file，然后运行main.py。此处提供两种文件类型的测试方式，区别如下：
-
-File Type| Describe                                         | 
-:--------|--------------------------------------------------|
-json     | 需要和训练集的结构保持一致，且output必须有内容，结果里会包含metrics和对应的预测结果 |
-txt      | 按行将待预测的语句放到文件中，结果只会输出对应的预测结果                         |
-
+修改DataTrainingArguments中的test_file为测试数据集所在的路径。  
 ```
 test_file: Optional[str] = field(
-    default='datasets/finetune/test/test_data.json',
+    default='datasets/finetune/test',
     metadata={
         # 测试集保存的路径。
         'help': 'The test file.'
@@ -228,7 +222,9 @@ test_file: Optional[str] = field(
 )
 ```
 
-如果跑奖励模型的批量测试，需要在config.py中将mode修改为rm_batch_test，修改DataTrainingArguments中的test_file，然后运行main.py，奖励模型测试只会输出模型的准确率。
+如果跑指令微调的测试，需要在config.py中将mode修改为sft_batch_test，然后运行main.py。
+
+如果跑奖励模型的批量测试，需要在config.py中将mode修改为rm_batch_test，然后运行main.py，奖励模型测试只会输出模型的准确率。
 
 * 批量测试的时候，adapter和reward模型会优先从你定义的ModelArguments中的checkpoint_dir读取，如果该文件下没有参数文件，则从TrainingArguments的output_dir文件夹加载。
 

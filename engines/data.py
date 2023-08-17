@@ -52,6 +52,18 @@ class DataManager:
 
         return tokenizer
 
+    def generating_args_preprocess(self, gen_kwargs):
+        if self.model_args.model_type == 'aquila':
+            self.tokenizer.add_special_tokens({'eos_token': '###'})
+            eos_token_id = (8090, 100007)
+            gen_kwargs['eos_token_id'] = eos_token_id
+        elif self.model_args.model_type == 'internlm':
+            eos_token_id = (2, 103028)
+            gen_kwargs['eos_token_id'] = eos_token_id
+        elif self.model_args.model_type == 'qwen':
+            gen_kwargs['eos_token_id'] = 151645
+        return gen_kwargs
+
     def load_datasets_from_files(self, test=False):
         data_files = {}
         if not test:
@@ -229,7 +241,9 @@ class DataManager:
         else:
             raw_datasets = self.load_datasets_from_files(test=True)
             test_dataset = raw_datasets['test']
-            if self.mode == 'rm_batch_test':
+            if self.mode == 'sft_batch_test':
+                test_dataset = propocess_dataset(self.preprocess_eval_supervised_fine_tuning_dataset, test_dataset, False)
+            elif self.mode == 'rm_batch_test':
                 test_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, test_dataset, False)
             self.logger.debug(f'Test dataset nums: {len(test_dataset)}')
             return test_dataset

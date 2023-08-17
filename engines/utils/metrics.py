@@ -16,9 +16,15 @@ class Metrics:
         self.rouge = Rouge()
         self.logger = logger
 
-    def computer_supervised_fine_tuning_metric(self, preds, labels):
+    def computer_supervised_fine_tuning_metric(self, eval_preds):
+        preds, labels = eval_preds
         score_dict = {'rouge-1': [], 'rouge-2': [], 'rouge-l': []}
-        for pred, label in zip(preds, labels):
+        preds = np.where(preds != -100, preds, self.tokenizer.pad_token_id)
+        labels = np.where(labels != -100, labels, self.tokenizer.pad_token_id)
+        decoded_preds = self.tokenizer.batch_decode(preds, skip_special_tokens=True)
+        decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
+
+        for pred, label in zip(decoded_preds, decoded_labels):
             hypothesis = list(jieba.cut(pred))
             reference = list(jieba.cut(label))
             if len(' '.join(hypothesis).split()) == 0 or len(' '.join(reference).split()) == 0:
@@ -34,7 +40,7 @@ class Metrics:
         return metric_results
 
     @staticmethod
-    def computer_training_reward_metric(preds):
-        preds, _ = preds
+    def computer_training_reward_metric(eval_preds):
+        preds, _ = eval_preds
         accuracy = np.array(preds[0] > preds[1]).sum() / len(preds[0])
         return {'accuracy': accuracy}
