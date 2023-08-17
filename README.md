@@ -222,11 +222,8 @@ test_file: Optional[str] = field(
 )
 ```
 
-如果跑指令微调的测试，需要在config.py中将mode修改为sft_batch_test，然后运行main.py。
-
+如果跑指令微调的测试，需要在config.py中将mode修改为sft_batch_test，然后运行main.py。  
 如果跑奖励模型的批量测试，需要在config.py中将mode修改为rm_batch_test，然后运行main.py，奖励模型测试只会输出模型的准确率。
-
-* 批量测试的时候，adapter和reward模型会优先从你定义的ModelArguments中的checkpoint_dir读取，如果该文件下没有参数文件，则从TrainingArguments的output_dir文件夹加载。
 
 ### Others
 Mode                | Describe                     | 
