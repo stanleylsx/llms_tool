@@ -197,9 +197,9 @@ class Train(BaseModels):
                     key.endswith('rotary_pos_emb') for key, _ in model.named_modules()):
                 model.lm_head = model.transformer.output_layer
             reward_model = AutoModelForCausalLMWithValueHead.from_pretrained(model)
+        self.set_train_environment(reward_model)
         self.logger.info(f'Model struct:\n{reward_model}')
         print_trainable_parameters(reward_model, self.logger)
-        self.set_train_environment(model)
         data_collator = DataCollatorForRewardModelTraining(tokenizer=self.tokenizer, return_tensors='pt')
         if not test:
             train_dataset, eval_dataset = self.data_manager.prepare_dataset()
