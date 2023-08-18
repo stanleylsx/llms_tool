@@ -267,6 +267,7 @@ class Train(BaseModels):
         self.logger.info(f'Load base model from {self.model_args.model_path}')
         model = self.load_base_model()
         reward_model = self.load_reward_model(model, vhead_dir='checkpoint/rm')
+        reward_model.eval()
         self.logger.info(f'Reward model struct:\n{reward_model}')
 
         sft_model = self.load_adapter(model, adapter_dir='checkpoint/sft')
@@ -319,14 +320,22 @@ class Train(BaseModels):
         gen_kwargs = self.generating_args.to_dict()
         gen_kwargs = self.data_manager.generating_args_preprocess(gen_kwargs)
 
-        for epoch, batch in tqdm(enumerate(ppo_trainer.dataloader)):
-            if epoch >= config.total_ppo_epochs:
+        total_steps = config.total_ppo_epochs
+        for step, batch in tqdm(enumerate(ppo_trainer.dataloader)):
+            if step >= total_steps:
                 break
 
             query_tensor = batch['input_ids']
-            a = self.tokenizer.batch_decode(query_tensor, skip_special_tokens=True)
             query_tensor = [i.squeeze(0) for i in query_tensor]
             responses = ppo_trainer.generate(query_tensor, return_prompt=False, **gen_kwargs)
-            s = self.tokenizer.batch_decode(responses, skip_special_tokens=True)
-            batch['response'] = self.tokenizer.batch_decode(responses, skip_special_tokens=True)
+            batch = ppo_trainer.prepare_model_inputs(query_tensor, responses)
+            _, _, values = reward_model(**batch, output_hidden_states=True, return_dict=True)
+            values = torch.transpose(values, 1, 0) if self.model_args.model_type == 'chatglm' else values
+            rewards = [reward for reward in values[:, -1].float().detach().cpu()]
+
+            # Run PPO step
+            responses_tensor = [i.squeeze(0) for i in responses]
+            stats = ppo_trainer.step(query_tensor, responses_tensor, rewards)
+            ppo_trainer.log_stats(stats, batch, rewards)
+            self.logger.debug(f'Step {step}/{total_steps}: reward score:{rewards}')
             print('')
