@@ -152,7 +152,7 @@ class DataTrainingArguments:
         }
     )
     test_file: Optional[str] = field(
-        default='datasets/finetune/example/test/test_data.json',
+        default='datasets/finetune/example/test',
         metadata={
             # 测试集保存的路径。
             'help': 'The test file.'
@@ -225,7 +225,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         }
     )
     do_eval: bool = field(
-        default=False,
+        default=True,
         metadata={
             'help': 'Whether to run eval on the dev set.'
         }
@@ -237,7 +237,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         }
     )
     num_train_epochs: float = field(
-        default=10.0,
+        default=5.0,
         metadata={
             'help': 'Total number of training epochs to perform.'
         }
@@ -255,7 +255,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         }
     )
     resume_from_checkpoint: Optional[Union[str, bool]] = field(
-        default=False,
+        default=True,
         metadata={
             'help': 'Continue train model from your checkpoint.'
         }
@@ -511,6 +511,18 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         metadata={
             'help': 'Number of optimisation epochs per batch of samples'
         }
+    )
+    ppo_steps: Optional[int] = field(
+        default=16,
+        metadata={
+            'help': 'Number of training steps'
+        }
+    )
+    log_with: Optional[str] = field(
+        default='wandb',
+        metadata={
+            "help": "Log with either 'wandb' or 'tensorboard', check  https://huggingface.co/docs/accelerate/usage_guides/tracking for more details"
+        },
     )
 
 

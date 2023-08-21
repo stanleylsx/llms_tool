@@ -6,7 +6,7 @@
 
 
 ## Introduction
-一个基于🤗[HuggingFace](https://huggingface.co/)开发的大语言模型训练、测试工具。支持不同模型的webui、终端预测，支持各模型的低参数量及全参数模型训练和融合，RLHF的代码工作还在进行中。  
+一个基于🤗[HuggingFace](https://huggingface.co/)开发的大语言模型训练、测试工具。支持不同模型的webui、终端预测，支持各模型的低参数量及全参数模型训练和融合，RLHF训练。  
 作者习惯于把配置和要做的事情都写在一个配置文件里面，然后以一个主函数作为入口直接运行，所以才有了这个项目。
 
 
@@ -15,6 +15,7 @@ Date| Detail
 :---|---
 2023-07-25|初始仓库
 2023-08-08|奖励模型训练
+2023-08-21|RLHF的PPO方法对各个模型的训练支持
 
 ## Requirement
 几个重要环境：
@@ -256,6 +257,6 @@ cpm_quantization_target: Optional[str] = field(
 
 ## Todo
 - [ ] 模型增强预训练
-- [ ] PPO模型训练
+- [x] PPO模型训练
 - [x] 奖励模型训练
 - [ ] nbce和ntk集成
