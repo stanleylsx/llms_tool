@@ -7,15 +7,16 @@
 from engines.models import BaseModels
 from engines.utils.print_parameters import print_trainable_parameters
 from engines.utils.metrics import Metrics
+from engines.data import DataCollatorForRewardModelTraining
+from engines.utils.trainer import SFTTrainer, RewardTrainer, PPOTrainer
 from peft import LoraConfig, AdaLoraConfig, PromptTuningConfig, PromptEncoderConfig, PrefixTuningConfig
 from peft import TaskType, get_peft_model
-from engines.utils.trainer import SFTTrainer, RewardTrainer
 from transformers import DataCollatorForSeq2Seq
-from engines.data import DataCollatorForRewardModelTraining
-from trl import AutoModelForCausalLMWithValueHead, PPOConfig, set_seed, PPOTrainer
+from trl import AutoModelForCausalLMWithValueHead, PPOConfig, set_seed
 from tqdm import tqdm
 import torch
 import math
+import os
 
 
 class Train(BaseModels):
@@ -278,8 +279,8 @@ class Train(BaseModels):
 
         ref_model = AutoModelForCausalLMWithValueHead.from_pretrained(sft_model)
 
-        ppo_model = self.construct_base_model(sft_model)
-        ppo_model = AutoModelForCausalLMWithValueHead.from_pretrained(ppo_model)
+        # ppo_model = self.construct_base_model(sft_model)
+        ppo_model = AutoModelForCausalLMWithValueHead.from_pretrained(sft_model)
         self.set_train_environment(ppo_model)
         self.logger.info(f'PPO model struct:\n{ppo_model}')
         print_trainable_parameters(ppo_model, logger=self.logger)
@@ -292,7 +293,9 @@ class Train(BaseModels):
             label_pad_token_id=self.tokenizer.pad_token_id
         )
 
+        output_dir = self.training_args.output_dir
         config = PPOConfig(
+            steps=self.training_args.ppo_steps,
             learning_rate=self.training_args.learning_rate,
             batch_size=self.training_args.per_device_train_batch_size * self.training_args.gradient_accumulation_steps,
             mini_batch_size=self.training_args.per_device_train_batch_size,
@@ -303,15 +306,17 @@ class Train(BaseModels):
             seed=self.training_args.seed,
             init_kl_coef=self.training_args.init_kl_coef,
             adap_kl_ctrl=self.training_args.adap_kl_ctrl,
+            project_kwargs={'logging_dir': output_dir}
         )
 
         # Set seed before initializing value head for deterministic eval
         set_seed(config.seed)
 
         ppo_trainer = PPOTrainer(
+            model_type=self.model_args.model_type,
             config=config,
             model=ppo_model,
-            ref_model=ref_model,
+            ref_model=None,
             tokenizer=self.tokenizer,
             dataset=train_dataset,
             data_collator=data_collator
@@ -325,17 +330,27 @@ class Train(BaseModels):
             if step >= total_steps:
                 break
 
-            query_tensor = batch['input_ids']
-            query_tensor = [i.squeeze(0) for i in query_tensor]
-            responses = ppo_trainer.generate(query_tensor, return_prompt=False, **gen_kwargs)
-            batch = ppo_trainer.prepare_model_inputs(query_tensor, responses)
-            _, _, values = reward_model(**batch, output_hidden_states=True, return_dict=True)
-            values = torch.transpose(values, 1, 0) if self.model_args.model_type == 'chatglm' else values
-            rewards = [reward for reward in values[:, -1].float().detach().cpu()]
+            queries = batch['input_ids']
+            batch['query'] = self.tokenizer.batch_decode(queries, skip_special_tokens=True)
+            queries = [i.squeeze(0) for i in queries]
+            responses = ppo_trainer.generate(queries, return_prompt=False, **gen_kwargs)
+            batch['response'] = self.tokenizer.batch_decode(responses, skip_special_tokens=True)
 
-            # Run PPO step
-            responses_tensor = [i.squeeze(0) for i in responses]
-            stats = ppo_trainer.step(query_tensor, responses_tensor, rewards)
-            ppo_trainer.log_stats(stats, batch, rewards)
-            self.logger.debug(f'Step {step}/{total_steps}: reward score:{rewards}')
-            print('')
+            reward_input_batch = ppo_trainer.prepare_model_inputs(queries, responses)
+            _, _, values = reward_model(**reward_input_batch, output_hidden_states=True, return_dict=True)
+            values = torch.transpose(values, 1, 0) if self.model_args.model_type == 'chatglm' else values
+            scores = [reward for reward in values[:, -1].detach().cpu()]
+
+            unpad_queries = []
+            for query in queries:
+                query = query.detach().cpu().numpy()
+                query = query[query != self.tokenizer.pad_token_id]
+                unpad_queries.append(torch.tensor(query))
+
+            responses = [i.squeeze(0) for i in responses]
+            stats = ppo_trainer.step(queries, responses, scores)
+            ppo_trainer.log_stats(stats, batch, scores)
+            self.logger.debug(f'Step {step}/{total_steps}: reward score:{scores}')
+            if (step + 1) % self.training_args.save_steps == 0:
+                self.save_model(os.path.join(self.training_args.output_dir, f'checkpoint-{step + 1}'))
+        ppo_trainer.save_pretrained(self.training_args.output_dir)
