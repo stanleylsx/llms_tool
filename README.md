@@ -227,7 +227,24 @@ test_file: Optional[str] = field(
 如果跑奖励模型的批量测试，需要在config.py中将mode修改为rm_batch_test，然后运行main.py，奖励模型测试只会输出模型的准确率。
 
 ### RLHF training
-目前仅支持PPO方法对模型进行强化学习训练，强化学习的数据和SFT的数据是一致的，此外使用的时候还需要在TrainingArguments中把PPO的配置填写好，在config.py中将mode修改为ppo_train，然后运行main.py。训练的结果将会通过wandb的格式记录在训练输出的文件夹中。
+在进行模型的RLHF训练之前，需要一个奖励模型和一个需要被RLHF微调的SFT模型，需要把他们配置到ModelArguments中如下：
+```
+checkpoint_dir: Optional[str] = field(
+    default='checkpoint/sft',
+    metadata={
+        # 保存下载的或者自己训练的adapter增量模型的地方，在RLHF时候，此处需要填写指令微调后模型所在的文件地址。
+        'help': 'Path to save the (delta) model checkpoints as well as the configurations automatically.',
+    }
+)
+reward_model_checkpoint: str = field(
+    default='checkpoint/rm',
+    metadata={
+        # 在RLHF时候，此处需要填写奖励模型所在的文件地址
+        'help': 'The checkpoint of reward model.'
+    }
+)
+```  
+RLHF目前仅支持PPO方法对模型进行强化学习训练，强化学习的数据和SFT的数据是一致的，此外使用的时候还需要在TrainingArguments中把PPO的配置填写好，在config.py中将mode修改为ppo_train，然后运行main.py。训练的结果将会通过wandb的格式记录在训练输出的文件夹中。
 
 * 如果前面使用的是adapter在SFT模型上训练的模型，RLHF的时候项目会在保留的adapter上继续训练，如果需要先融合之后创建新的adapter需要调用merge_peft_model方法先融合。
 
@@ -263,7 +280,7 @@ cpm_quantization_target: Optional[str] = field(
 ## Todo
 - [x] 奖励模型训练
 - [x] PPO模型训练
-- [ ] mmlu和eval自动化评估
+- [ ] mmlu、cmmlu和C-Eval自动化评估
 - [ ] 多轮对话的[Firefly的loss](https://mp.weixin.qq.com/s/nhogoWnzl3nrs_77r38_UA)函数集成
 - [ ] [NTK-Aware Scaled RoPE](https://kexue.fm/archives/9706)集成
-- [ ] DPO模型训练
+- [ ] DPO方法模型训练
