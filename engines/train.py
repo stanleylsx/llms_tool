@@ -8,7 +8,7 @@ from engines.models import BaseModels
 from engines.utils.print_parameters import print_trainable_parameters
 from engines.utils.metrics import Metrics
 from engines.data import DataCollatorForRewardModelTraining
-from engines.utils.trainer import SFTTrainer, RewardTrainer, PPOTrainer
+from engines.utils.trainer import SFTTrainer, RewardTrainer, MyPPOTrainer
 from peft import LoraConfig, AdaLoraConfig, PromptTuningConfig, PromptEncoderConfig, PrefixTuningConfig
 from peft import TaskType, get_peft_model
 from transformers import DataCollatorForSeq2Seq
@@ -312,7 +312,7 @@ class Train(BaseModels):
         # Set seed before initializing value head for deterministic eval
         set_seed(config.seed)
 
-        ppo_trainer = PPOTrainer(
+        ppo_trainer = MyPPOTrainer(
             model_type=self.model_args.model_type,
             config=config,
             model=ppo_model,

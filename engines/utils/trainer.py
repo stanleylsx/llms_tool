@@ -1,6 +1,6 @@
 from transformers import Seq2SeqTrainer, Trainer
 from transformers.modeling_utils import unwrap_model
-from trl import PPOTrainer, PreTrainedModelWrapper
+from trl import PPOTrainer
 from trl.core import PPODecorators, logprobs_from_logits
 from typing import Optional
 import torch
@@ -60,38 +60,13 @@ class RewardTrainer(Trainer):
         torch.save(self.args, os.path.join(output_dir, 'training_args.bin'))
 
 
-class PPOTrainer(PPOTrainer):
+class MyPPOTrainer(PPOTrainer):
     def __init__(self, model_type, **kwargs):
         super().__init__(**kwargs)
         self.model_type = model_type
 
     @PPODecorators.empty_cuda_cache()
-    def batched_forward_pass(
-        self,
-        model: PreTrainedModelWrapper,
-        queries: torch.Tensor,
-        responses: torch.Tensor,
-        model_inputs: dict,
-        return_logits: bool = False,
-    ):
-        """
-        Calculate model outputs in multiple batches.
-
-        Args:
-            queries (`torch.LongTensor`):
-                List of tensors containing the encoded queries, shape (`batch_size`, `query_length`)
-            responses (`torch.LongTensor`):
-                List of tensors containing the encoded responses, shape (`batch_size`, `response_length`)
-            return_logits (`bool`, *optional*, defaults to `False`):
-                Whether to return all_logits. Set to `False` if logits are not needed to reduce memory consumption.
-        Returns:
-            (tuple):
-                - all_logprobs (`torch.FloatTensor`): Log probabilities of the responses,
-                    shape (`batch_size`, `response_length`)
-                - all_ref_logprobs (`torch.FloatTensor`): Log probabilities of the responses,
-                    shape (`batch_size`, `response_length`)
-                - all_values (`torch.FloatTensor`): Values of the responses, shape (`batch_size`, `response_length`)
-        """
+    def batched_forward_pass(self, model, queries, responses, model_inputs, return_logits):
         bs = len(queries)
         fbs = self.config.mini_batch_size
         all_logprobs = []
