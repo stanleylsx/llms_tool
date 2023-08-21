@@ -267,11 +267,11 @@ class Train(BaseModels):
     def train_ppo(self):
         self.logger.info(f'Load base model from {self.model_args.model_path}')
         model = self.load_base_model()
-        reward_model = self.load_reward_model(model, vhead_dir='checkpoint/rm')
+        reward_model = self.load_reward_model(model, vhead_dir=self.model_args.reward_model_checkpoint)
         reward_model.eval()
         self.logger.info(f'Reward model struct:\n{reward_model}')
 
-        sft_model = self.load_adapter(model, adapter_dir='checkpoint/sft')
+        sft_model = self.load_adapter(model, adapter_dir=self.model_args.checkpoint_dir)
 
         if self.model_args.model_type == 'chatglm' and any(
                 key.endswith('rotary_pos_emb') for key, _ in sft_model.named_modules()):
@@ -352,5 +352,5 @@ class Train(BaseModels):
             ppo_trainer.log_stats(stats, batch, scores)
             self.logger.debug(f'Step {step}/{total_steps}: reward score:{scores}')
             if (step + 1) % self.training_args.save_steps == 0:
-                self.save_model(os.path.join(self.training_args.output_dir, f'checkpoint-{step + 1}'))
+                ppo_trainer.save_pretrained(os.path.join(self.training_args.output_dir, f'checkpoint-{step + 1}'))
         ppo_trainer.save_pretrained(self.training_args.output_dir)
