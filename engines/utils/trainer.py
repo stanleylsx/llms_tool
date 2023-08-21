@@ -100,9 +100,9 @@ class PPOTrainer(PPOTrainer):
         all_values = []
 
         for i in range(math.ceil(bs / fbs)):
-            input_kwargs = {key: value[i * fbs : (i + 1) * fbs] for key, value in model_inputs.items()}
-            query_batch = queries[i * fbs : (i + 1) * fbs]
-            response_batch = responses[i * fbs : (i + 1) * fbs]
+            input_kwargs = {key: value[i * fbs: (i + 1) * fbs] for key, value in model_inputs.items()}
+            query_batch = queries[i * fbs: (i + 1) * fbs]
+            response_batch = responses[i * fbs: (i + 1) * fbs]
             logits, _, values = model(**input_kwargs)
             values = torch.transpose(values, 1, 0) if self.model_type == 'chatglm' else values
 
