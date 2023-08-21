@@ -39,10 +39,17 @@ class ModelArguments:
         }
     )
     checkpoint_dir: Optional[str] = field(
-        default=None,
+        default='checkpoint/sft',
         metadata={
-            # 保存下载的或者自己训练的adapter增量模型的地方。
+            # 保存下载的或者自己训练的adapter增量模型的地方，在RLHF时候，此处需要填写指令微调后模型所在的文件地址。
             'help': 'Path to save the (delta) model checkpoints as well as the configurations automatically.',
+        }
+    )
+    reward_model_checkpoint: str = field(
+        default='checkpoint/rm',
+        metadata={
+            # 在RLHF时候，此处需要填写奖励模型所在的文件地址
+            'help': 'The checkpoint of reward model.'
         }
     )
     cache_dir: Optional[str] = field(
