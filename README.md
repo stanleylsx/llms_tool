@@ -246,7 +246,7 @@ reward_model_checkpoint: str = field(
 ```  
 RLHF目前仅支持PPO方法对模型进行强化学习训练，强化学习的数据和SFT的数据是一致的，此外使用的时候还需要在TrainingArguments中把PPO的配置填写好，在config.py中将mode修改为ppo_train，然后运行main.py。训练的结果将会通过wandb的格式记录在训练输出的文件夹中。
 
-* 如果前面使用的是adapter在SFT模型上训练的模型，RLHF的时候项目会在保留的adapter上继续训练，如果需要先融合之后创建新的adapter需要调用merge_peft_model方法先融合。
+* 如果前面使用的是adapter在SFT模型上训练的模型，RLHF的时候项目会融合前面的adapter后创建新的adapter继续训练。
 
 ### Others
 Mode                | Describe                     | 
