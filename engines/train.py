@@ -8,7 +8,7 @@ from engines.models import BaseModels
 from engines.utils.print_parameters import print_trainable_parameters
 from engines.utils.metrics import Metrics
 from engines.data import DataCollatorForRewardModelTraining
-from engines.utils.trainer import SFTTrainer, RewardTrainer, PPOTrainer
+from engines.utils.trainer import SFTTrainer, RewardTrainer, MyPPOTrainer
 from peft import LoraConfig, AdaLoraConfig, PromptTuningConfig, PromptEncoderConfig, PrefixTuningConfig
 from peft import TaskType, get_peft_model
 from transformers import DataCollatorForSeq2Seq
@@ -277,10 +277,8 @@ class Train(BaseModels):
                 key.endswith('rotary_pos_emb') for key, _ in sft_model.named_modules()):
             sft_model.lm_head = sft_model.transformer.output_layer
 
-        ref_model = AutoModelForCausalLMWithValueHead.from_pretrained(sft_model)
-
-        # ppo_model = self.construct_base_model(sft_model)
-        ppo_model = AutoModelForCausalLMWithValueHead.from_pretrained(sft_model)
+        ppo_model = self.construct_base_model(sft_model)
+        ppo_model = AutoModelForCausalLMWithValueHead.from_pretrained(ppo_model)
         self.set_train_environment(ppo_model)
         self.logger.info(f'PPO model struct:\n{ppo_model}')
         print_trainable_parameters(ppo_model, logger=self.logger)
@@ -292,7 +290,6 @@ class Train(BaseModels):
             return_tensors='pt',
             label_pad_token_id=self.tokenizer.pad_token_id
         )
-
         output_dir = self.training_args.output_dir
         config = PPOConfig(
             steps=self.training_args.ppo_steps,
@@ -308,11 +305,8 @@ class Train(BaseModels):
             adap_kl_ctrl=self.training_args.adap_kl_ctrl,
             project_kwargs={'logging_dir': output_dir}
         )
-
-        # Set seed before initializing value head for deterministic eval
         set_seed(config.seed)
-
-        ppo_trainer = PPOTrainer(
+        ppo_trainer = MyPPOTrainer(
             model_type=self.model_args.model_type,
             config=config,
             model=ppo_model,
@@ -321,7 +315,6 @@ class Train(BaseModels):
             dataset=train_dataset,
             data_collator=data_collator
         )
-
         gen_kwargs = self.generating_args.to_dict()
         gen_kwargs = self.data_manager.generating_args_preprocess(gen_kwargs)
 
@@ -333,11 +326,12 @@ class Train(BaseModels):
             queries = batch['input_ids']
             batch['query'] = self.tokenizer.batch_decode(queries, skip_special_tokens=True)
             queries = [i.squeeze(0) for i in queries]
+
             responses = ppo_trainer.generate(queries, return_prompt=False, **gen_kwargs)
             batch['response'] = self.tokenizer.batch_decode(responses, skip_special_tokens=True)
-
             reward_input_batch = ppo_trainer.prepare_model_inputs(queries, responses)
             _, _, values = reward_model(**reward_input_batch, output_hidden_states=True, return_dict=True)
+
             values = torch.transpose(values, 1, 0) if self.model_args.model_type == 'chatglm' else values
             scores = [reward for reward in values[:, -1].detach().cpu()]
 

@@ -1,8 +1,8 @@
 from transformers import Seq2SeqTrainer, Trainer
 from transformers.modeling_utils import unwrap_model
-from trl import PPOTrainer, PreTrainedModelWrapper
+from trl import PPOTrainer
 from trl.core import PPODecorators, logprobs_from_logits
-from typing import Optional
+from typing import Optional, List
 import torch
 import os
 import math
@@ -60,38 +60,13 @@ class RewardTrainer(Trainer):
         torch.save(self.args, os.path.join(output_dir, 'training_args.bin'))
 
 
-class PPOTrainer(PPOTrainer):
+class MyPPOTrainer(PPOTrainer):
     def __init__(self, model_type, **kwargs):
         super().__init__(**kwargs)
         self.model_type = model_type
 
     @PPODecorators.empty_cuda_cache()
-    def batched_forward_pass(
-        self,
-        model: PreTrainedModelWrapper,
-        queries: torch.Tensor,
-        responses: torch.Tensor,
-        model_inputs: dict,
-        return_logits: bool = False,
-    ):
-        """
-        Calculate model outputs in multiple batches.
-
-        Args:
-            queries (`torch.LongTensor`):
-                List of tensors containing the encoded queries, shape (`batch_size`, `query_length`)
-            responses (`torch.LongTensor`):
-                List of tensors containing the encoded responses, shape (`batch_size`, `response_length`)
-            return_logits (`bool`, *optional*, defaults to `False`):
-                Whether to return all_logits. Set to `False` if logits are not needed to reduce memory consumption.
-        Returns:
-            (tuple):
-                - all_logprobs (`torch.FloatTensor`): Log probabilities of the responses,
-                    shape (`batch_size`, `response_length`)
-                - all_ref_logprobs (`torch.FloatTensor`): Log probabilities of the responses,
-                    shape (`batch_size`, `response_length`)
-                - all_values (`torch.FloatTensor`): Values of the responses, shape (`batch_size`, `response_length`)
-        """
+    def batched_forward_pass(self, model, queries, responses, model_inputs, return_logits):
         bs = len(queries)
         fbs = self.config.mini_batch_size
         all_logprobs = []
@@ -145,3 +120,93 @@ class PPOTrainer(PPOTrainer):
             torch.cat(all_values)[:, :-1],
             torch.cat(all_masks)[:, :-1],
         )
+
+    def generate(
+        self,
+        query_tensor,
+        length_sampler=None,
+        batch_size=4,
+        return_prompt=True,
+        **generation_kwargs
+    ):
+        if isinstance(query_tensor, List):
+            return self._generate_batched(
+                query_tensor,
+                length_sampler=length_sampler,
+                batch_size=batch_size,
+                return_prompt=return_prompt,
+                **generation_kwargs,
+            )
+
+        else:
+            if length_sampler is not None:
+                generation_kwargs["max_new_tokens"] = length_sampler()
+            response = self.accelerator.unwrap_model(self.model).generate(
+                input_ids=query_tensor.unsqueeze(dim=0), **generation_kwargs
+            )
+
+            if not return_prompt and not self.is_encoder_decoder:
+                return response[:, query_tensor.shape[0]:]
+            return response
+
+    def _generate_batched(
+        self,
+        query_tensors,
+        length_sampler=None,
+        batch_size=4,
+        return_prompt=True,
+        pad_to_multiple_of=None,
+        remove_padding=True,
+        **generation_kwargs,
+    ):
+        outputs = []
+
+        padding_side_default = self.tokenizer.padding_side
+        if not self.is_encoder_decoder:
+            self.tokenizer.padding_side = "left"
+
+        # in case we have fewer examples than bs
+        batch_size = min(len(query_tensors), batch_size)
+
+        for i in range(0, len(query_tensors), batch_size):
+            if length_sampler is not None:
+                generation_kwargs["max_new_tokens"] = length_sampler()
+
+            # prevent overflow if query tensors are not even multiple of bs
+            end_index = min(len(query_tensors), i + batch_size)
+
+            batch = query_tensors[i:end_index]
+            batch_mask = [torch.ones_like(element) for element in batch]
+            inputs = {"input_ids": batch, "attention_mask": batch_mask}
+
+            padded_inputs = self.tokenizer.pad(
+                inputs,
+                padding=True,
+                max_length=None,
+                pad_to_multiple_of=pad_to_multiple_of,
+                return_tensors="pt",
+            ).to(self.current_device)
+            unwrapped_model = self.accelerator.unwrap_model(self.model)
+            unwrapped_model.gradient_checkpointing_disable()
+            unwrapped_model.config.use_cache = True
+            generations = unwrapped_model.generate(**padded_inputs, **generation_kwargs)
+            unwrapped_model.gradient_checkpointing_enable()
+            unwrapped_model.config.use_cache = False
+            for generation, mask in zip(generations, padded_inputs["attention_mask"]):
+                if not self.is_encoder_decoder:
+                    output = generation[(1 - mask).sum():]  # remove padding
+                else:
+                    output = generation
+
+                if not return_prompt and not self.is_encoder_decoder:
+                    output = output[(mask).sum():]  # remove prompt
+
+                if remove_padding and self.tokenizer.eos_token_id in output:
+                    pad_mask = output == self.tokenizer.eos_token_id
+                    pad_start = torch.nonzero(pad_mask, as_tuple=False)[0, 0].item()
+                    output = output[: pad_start + 1]  # keep the eos token at the end
+
+                outputs.append(output)
+
+        self.tokenizer.padding_side = padding_side_default
+        return outputs
