@@ -304,7 +304,7 @@ cpm_quantization_target: Optional[str] = field(
 ## Todo
 - [x] 奖励模型训练
 - [x] PPO模型训练
-- [x] PPO模型训练
+- [x] DPO模型训练
 - [ ] mmlu、cmmlu和C-Eval自动化评估
 - [ ] 多轮对话的[Firefly的loss](https://mp.weixin.qq.com/s/nhogoWnzl3nrs_77r38_UA)函数集成
 - [ ] [NTK-Aware Scaled RoPE](https://kexue.fm/archives/9706)集成
