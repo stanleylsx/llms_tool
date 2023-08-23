@@ -200,6 +200,14 @@ class DataManager:
             reject_list.append(reject_ids)
         return {'accept_ids': accept_list, 'reject_ids': reject_list}
 
+    def preprocess_train_dpo_text_dataset(self, examples):
+        prompt_list, accept_list, reject_list = [], [], []
+        for prompt, answer in self.format_example(examples):
+            prompt_list.append(prompt)
+            accept_list.append(answer[0])
+            reject_list.append(answer[1])
+        return {'prompt': prompt_list, 'chosen': accept_list, 'rejected': reject_list}
+
     def prepare_dataset(self, test=False):
 
         def propocess_dataset(process_func, dataset, shuffle=True):
@@ -225,6 +233,8 @@ class DataManager:
                 train_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, train_dataset)
             elif self.mode == 'ppo_train':
                 train_dataset = propocess_dataset(self.preprocess_eval_supervised_fine_tuning_dataset, train_dataset)
+            elif self.mode == 'dpo_train':
+                train_dataset = propocess_dataset(self.preprocess_train_dpo_text_dataset, train_dataset)
             self.logger.debug(f'Train dataset nums: {len(train_dataset)}')
 
             eval_dataset = None
@@ -236,6 +246,8 @@ class DataManager:
                     eval_dataset = propocess_dataset(self.preprocess_eval_supervised_fine_tuning_dataset, eval_dataset, False)
                 elif self.mode == 'rm_train':
                     eval_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, eval_dataset, False)
+                elif self.mode == 'dpo_train':
+                    eval_dataset = propocess_dataset(self.preprocess_train_dpo_text_dataset, eval_dataset, False)
                 self.logger.debug(f'Validation dataset nums: {len(eval_dataset)}')
             return train_dataset, eval_dataset
         else:
