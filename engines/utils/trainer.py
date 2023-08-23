@@ -199,7 +199,7 @@ class MyPPOTrainer(PPOTrainer):
                     output = generation
 
                 if not return_prompt and not self.is_encoder_decoder:
-                    output = output[(mask).sum():]  # remove prompt
+                    output = output[mask.sum():]  # remove prompt
 
                 if remove_padding and self.tokenizer.eos_token_id in output:
                     pad_mask = output == self.tokenizer.eos_token_id

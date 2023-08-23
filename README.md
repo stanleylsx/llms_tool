@@ -37,15 +37,16 @@ Model   | Scale        | Series
 ChatGLM1| 6B           |[chatglm1](https://huggingface.co/THUDM/chatglm-6b)
 ChatGLM2| 6B           |[chatglm2](https://huggingface.co/THUDM/chatglm2-6bb)
 Qwen    | 7B           |[Qwen](https://huggingface.co/Qwen)
-Bloom   | 560M、9B、7B1M |[bloom](https://huggingface.co/bigscience/bloom)、[bloomz](https://huggingface.co/bigscience/bloomz)
-LLama1  | 3B、7B、13B    |[openllama](https://huggingface.co/openlm-research)、[chinese-alpaca](https://github.com/ymcui/Chinese-LLaMA-Alpaca)、[ziya](https://huggingface.co/IDEA-CCNL)
-LLama2  | 7B、13B       |[llama2](https://huggingface.co/meta-llama)
-Baichuan| 7B、13B       |[baichuan](https://huggingface.co/baichuan-inc)
+Bloom   | 560M、9B、7B1M|[bloom](https://huggingface.co/bigscience/bloom)、[bloomz](https://huggingface.co/bigscience/bloomz)
+LLama1  | 3B、7B、13B   |[openllama](https://huggingface.co/openlm-research)、[chinese-alpaca](https://github.com/ymcui/Chinese-LLaMA-Alpaca)、[ziya](https://huggingface.co/IDEA-CCNL)
+LLama2  | 7B、13B      |[llama2](https://huggingface.co/meta-llama)
+Baichuan| 7B、13B      |[baichuan](https://huggingface.co/baichuan-inc)
 Falcon  | 7B           |[falcon](https://huggingface.co/tiiuae/falcon-7b)、[chinese-Falcon](https://huggingface.co/Linly-AI)
 Aquila  | 7B           |[aquila](https://huggingface.co/BAAI)
 InternLM| 7B           |[internlm](https://huggingface.co/internlm)
 MOSS    | 16B          |[MOSS](https://huggingface.co/fnlp)
-RWKV    | 3B、7B        |[rwkv-4-raven](https://huggingface.co/BlinkDL/rwkv-4-raven)
+RWKV    | 3B、7B       |[rwkv-4-raven](https://huggingface.co/BlinkDL/rwkv-4-raven)
+XVERSE  | 13B          |[XVERSE](https://huggingface.co/xverse/XVERSE-13B-Chat)
 
 * 使用RWKV时候需要使用本项目的[convert_rwkv_to_hf](engines/utils/convert_rwkv_to_hf.py)或者transformers自带的[convert_rwkv_checkpoint_to_hf](https://github.com/huggingface/transformers/blob/main/src/transformers/models/rwkv/convert_rwkv_checkpoint_to_hf.py)将模型转成hf格式。
 * 未进入下表的模型或参数规模暂时没有使用该项目跑过。

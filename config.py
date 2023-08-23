@@ -28,7 +28,7 @@ class ModelArguments:
             # 模型类型
             'help': 'Model type.',
             'choices': ['chatglm', 'qwen', 'llama', 'falcon', 'baichuan', 'aquila',
-                        'internlm', 'moss', 'bloom', 'rwkv'],
+                        'internlm', 'moss', 'bloom', 'rwkv', 'xverse'],
         }
     )
     model_path: str = field(
@@ -178,7 +178,7 @@ class DataTrainingArguments:
             # 选择对应模型的模板prompt，一般Chat模型的出品方都会有一个固定的prompt。
             'help': 'Which template to use for constructing prompts in training and inference.',
             'choices': ['default', 'vanilla', 'alpaca', 'vicuna', 'belle', 'linly', 'billa', 'ziya', 'aquila',
-                        'firefly', 'openbuddy', 'internlm', 'baichuan', 'chatglm', 'qwen', 'moss', 'rwkv', 'linksoul']
+                        'firefly', 'openbuddy', 'internlm', 'baichuan', 'chatglm', 'qwen', 'moss', 'rwkv', 'linksoul', 'xverse']
         }
     )
     overwrite_cache: Optional[bool] = field(
@@ -473,7 +473,8 @@ class TrainingArguments(Seq2SeqTrainingArguments):
             InternLM choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"up_proj\", \"down_proj\"] \
             Aquila choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"] \
             Baichuan choices: [\"W_pack\", \"o_proj\", \"gate_proj\", \"up_proj\", \"down_proj\"] \
-            Qwen choices: [\"c_attn\", \"c_proj\", \"w1\", \"w2\"]"
+            Qwen choices: [\"c_attn\", \"c_proj\", \"w1\", \"w2\"] \
+            Xverse choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"]"
         }
     )
     # prompt_tuning:

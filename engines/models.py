@@ -91,7 +91,7 @@ class BaseModels:
 
         if self.model_args.model_type == 'chatglm':
             model = AutoModel.from_pretrained(model_to_load, trust_remote_code=True, **config_kwargs)
-        elif self.model_args.model_type in ['falcon', 'baichuan', 'aquila', 'internlm', 'moss', 'qwen']:
+        elif self.model_args.model_type in ['falcon', 'baichuan', 'aquila', 'internlm', 'moss', 'qwen', 'xverse']:
             model = AutoModelForCausalLM.from_pretrained(model_to_load, trust_remote_code=True, **config_kwargs)
             if self.model_args.model_type == 'qwen':
                 model.generate = MethodType(PreTrainedModel.generate, model)
