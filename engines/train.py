@@ -348,3 +348,6 @@ class Train(BaseModels):
             if (step + 1) % self.training_args.save_steps == 0:
                 ppo_trainer.save_pretrained(os.path.join(self.training_args.output_dir, f'checkpoint-{step + 1}'))
         ppo_trainer.save_pretrained(self.training_args.output_dir)
+
+    def train_dpo(self, test=False):
+        pass

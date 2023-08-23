@@ -31,6 +31,10 @@ if __name__ == '__main__':
         # 奖励模型训练
         train = Train(data_manager, config, logger)
         train.train_reward_model()
+    elif mode == 'dpo_train':
+        # 奖励模型强化训练
+        train = Train(data_manager, config, logger)
+        train.train_dpo()
     elif mode == 'ppo_train':
         # 奖励模型强化训练
         train = Train(data_manager, config, logger)

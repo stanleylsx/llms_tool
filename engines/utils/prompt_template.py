@@ -179,6 +179,14 @@ class Template:
             self.prompt = '<|im_start|>user\n{query}<|im_end|>\n<|im_start|>assistant\n'
             self.sep = '<|im_end|>\n'
             self.use_history = True
+        elif self.prompt_template == 'xverse':
+            r"""
+            Supports: https://huggingface.co/xverse/XVERSE-13B-Chat/
+            """
+            self.prefix = ''
+            self.prompt = 'Human: {query}\n\nAssistant: '
+            self.sep = '\n\n'
+            self.use_history = True
         else:
             raise ValueError('Template {} does not exist.'.format(self.prompt_template))
 
