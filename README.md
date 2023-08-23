@@ -16,6 +16,7 @@ Date| Detail
 2023-07-25|初始仓库
 2023-08-08|奖励模型训练
 2023-08-21|RLHF的PPO方法对各个模型的训练支持
+2023-08-23|RLHF的DPO方法对各个模型的训练支持
 
 ## Requirement
 几个重要环境：
@@ -228,7 +229,8 @@ test_file: Optional[str] = field(
 如果跑奖励模型的批量测试，需要在config.py中将mode修改为rm_batch_test，然后运行main.py，奖励模型测试只会输出模型的准确率。
 
 ### RLHF training
-在进行模型的RLHF训练之前，需要一个奖励模型和一个需要被RLHF微调的SFT模型，需要把他们配置到ModelArguments中如下：
+#### PPO
+在进行基于PPO模型的RLHF训练之前，需要一个奖励模型和一个需要被RLHF微调的SFT模型，需要把他们配置到ModelArguments中如下：
 ```
 checkpoint_dir: Optional[str] = field(
     default='checkpoint/sft',
@@ -245,7 +247,28 @@ reward_model_checkpoint: str = field(
     }
 )
 ```  
-RLHF目前仅支持PPO方法对模型进行强化学习训练，强化学习的数据和SFT的数据是一致的，此外使用的时候还需要在TrainingArguments中把PPO的配置填写好，在config.py中将mode修改为ppo_train，然后运行main.py。训练的结果将会通过wandb的格式记录在训练输出的文件夹中。
+PPO方法对模型进行强化学习训练的数据和SFT的数据是一致的，此外使用的时候还需要在TrainingArguments中把PPO的配置填写好，在config.py中将mode修改为ppo_train，然后运行main.py。训练的结果将会通过wandb的格式记录在训练输出的文件夹中。
+
+#### DPO
+在进行基于DPO模型的RLHF训练之前，只需要一个被RLHF微调的SFT模型，如果是基于adapter的模型还需要把adapter配置到ModelArguments中如下：
+```
+model_path: str = field(
+    default='/home/XXX/ChatGLM/ChatGLM2-6B-32k',
+    metadata={
+        # 从huggingface.co/models上下载的模型保存到本地的路径或者自己的模型。
+        'help': 'Local path to pretrained model or model identifier from huggingface.co/models.'
+    }
+)
+checkpoint_dir: Optional[str] = field(
+    default='checkpoint/sft',
+    metadata={
+        # 保存下载的或者自己训练的adapter增量模型的地方，在RLHF时候，此处需要填写指令微调后模型所在的文件地址。
+        'help': 'Path to save the (delta) model checkpoints as well as the configurations automatically.',
+    }
+)
+```  
+DPO方法对模型进行强化学习训练的数据和奖励模型的数据是一致的，在config.py中将mode修改为dpo_train，然后运行main.py。训练的结果将会通过wandb的格式记录在训练输出的文件夹中。
+
 
 * 如果前面使用的是adapter在SFT模型上训练的模型，RLHF的时候项目会融合前面的adapter后创建新的adapter继续训练。
 
@@ -281,7 +304,8 @@ cpm_quantization_target: Optional[str] = field(
 ## Todo
 - [x] 奖励模型训练
 - [x] PPO模型训练
+- [x] PPO模型训练
 - [ ] mmlu、cmmlu和C-Eval自动化评估
 - [ ] 多轮对话的[Firefly的loss](https://mp.weixin.qq.com/s/nhogoWnzl3nrs_77r38_UA)函数集成
 - [ ] [NTK-Aware Scaled RoPE](https://kexue.fm/archives/9706)集成
-- [ ] DPO方法模型训练
+

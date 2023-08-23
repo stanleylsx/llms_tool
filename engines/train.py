@@ -12,7 +12,7 @@ from engines.utils.trainer import SFTTrainer, RewardTrainer, MyPPOTrainer
 from peft import LoraConfig, AdaLoraConfig, PromptTuningConfig, PromptEncoderConfig, PrefixTuningConfig
 from peft import TaskType, get_peft_model
 from transformers import DataCollatorForSeq2Seq
-from trl import AutoModelForCausalLMWithValueHead, PPOConfig, set_seed
+from trl import AutoModelForCausalLMWithValueHead, PPOConfig, set_seed, DPOTrainer
 from tqdm import tqdm
 import torch
 import math
@@ -349,5 +349,38 @@ class Train(BaseModels):
                 ppo_trainer.save_pretrained(os.path.join(self.training_args.output_dir, f'checkpoint-{step + 1}'))
         ppo_trainer.save_pretrained(self.training_args.output_dir)
 
-    def train_dpo(self, test=False):
-        pass
+    def train_dpo(self):
+        self.logger.info(f'Load base model from {self.model_args.model_path}')
+        model = self.load_base_model()
+        model = self.load_adapter(model, adapter_dir=self.model_args.checkpoint_dir)
+        ref_model = model
+        model = self.construct_base_model(model)
+        self.set_train_environment(model)
+        self.logger.info(f'Model struct:\n{model}')
+        train_dataset, eval_dataset = self.data_manager.prepare_dataset()
+        dpo_trainer = DPOTrainer(
+            model=model,
+            ref_model=ref_model,
+            beta=0.1,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            tokenizer=self.tokenizer,
+            args=self.training_args
+        )
+        self.logger.info('*** Start training. ***')
+        checkpoint = None
+        if self.training_args.resume_from_checkpoint:
+            checkpoint = self.training_args.output_dir
+            self.logger.info(f'Resume checkpoint from {checkpoint}')
+        try:
+            trainer_result = dpo_trainer.train(resume_from_checkpoint=checkpoint)
+        except ValueError:
+            self.logger.warning(f"Can't find a valid checkpoint at {checkpoint}")
+            trainer_result = dpo_trainer.train()
+        metrics = trainer_result.metrics
+        self.logger.info(f'Training metrics: {metrics}')
+        dpo_trainer.log_metrics('train', metrics)
+        dpo_trainer.save_metrics('train', metrics)
+        self.logger.info(f'Saving model checkpoint to {self.training_args.output_dir}')
+        dpo_trainer.save_state()
+        dpo_trainer.save_model()
