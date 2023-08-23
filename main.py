@@ -32,11 +32,11 @@ if __name__ == '__main__':
         train = Train(data_manager, config, logger)
         train.train_reward_model()
     elif mode == 'dpo_train':
-        # 奖励模型强化训练
+        # RLHF中使用DPO方法对模型强化训练
         train = Train(data_manager, config, logger)
         train.train_dpo()
     elif mode == 'ppo_train':
-        # 奖励模型强化训练
+        # RLHF中使用PPO方法对模型强化训练
         train = Train(data_manager, config, logger)
         train.train_ppo()
     elif mode == 'sft_batch_test':
