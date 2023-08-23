@@ -6,7 +6,8 @@ import torch
 # （待完成）预训练：          pretrain
 # 模型指令微调：              sft_train
 # 奖励模型训练：              rm_train
-# （ing）奖励模型强化训练：    ppo_train
+# PPO模型强化训练：           ppo_train
+# (ing)DPO模型强化训练：           dpo_train
 # 网页端测试模型：            web_inference
 # 终端模型交互：              terminal_inference
 # 融合模型：                 merge_peft_model
