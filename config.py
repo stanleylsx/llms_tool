@@ -42,14 +42,14 @@ class ModelArguments:
     checkpoint_dir: Optional[str] = field(
         default='checkpoint/sft',
         metadata={
-            # 保存下载的或者自己训练的adapter增量模型的地方，在RLHF时候，此处需要填写指令微调后模型所在的文件地址。
+            # 保存下载的或者自己训练的adapter增量模型的地方，在RLHF时候，此处需要填写指令微调后模型所在的文件地址(如果有)。
             'help': 'Path to save the (delta) model checkpoints as well as the configurations automatically.',
         }
     )
     reward_model_checkpoint: str = field(
         default='checkpoint/rm',
         metadata={
-            # 在RLHF时候，此处需要填写奖励模型所在的文件地址
+            # 在使用PPO做RLHF时候，此处需要填写奖励模型所在的文件地址
             'help': 'The checkpoint of reward model.'
         }
     )
@@ -176,7 +176,7 @@ class DataTrainingArguments:
     prompt_template: Optional[str] = field(
         default='chatglm',
         metadata={
-            # 选择对应模型的模板prompt，一般Chat模型的出品方都会有一个固定的prompt。
+            # 选择对应模型的模板prompt，一般Chat模型的出品方都会有一个固定的prompt，这部分很重要，预测训练阶段都需要根据chat模型的要求修改
             'help': 'Which template to use for constructing prompts in training and inference.',
             'choices': ['default', 'vanilla', 'alpaca', 'vicuna', 'belle', 'linly', 'billa', 'ziya', 'aquila',
                         'firefly', 'openbuddy', 'internlm', 'baichuan', 'chatglm', 'qwen', 'moss', 'rwkv', 'linksoul', 'xverse']
@@ -199,6 +199,7 @@ class DataTrainingArguments:
     max_input_token: int = field(
         default=2048,
         metadata={
+            # 模型接受的最大输入的token数，一般来说如果基座使用了ntk aware Rope的方法后，可以把输入调得更大，平时的时候使用基座模型的规定的最大长度就好
             'help': 'Max token of input.'
         }
     )
@@ -539,6 +540,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
 class GeneratingArguments:
     """
     Arguments pertaining to specify the decoding parameters.
+    这里都是模型做生成时候的配置，在需要预测阶段（比如webui使用的时候）和RLHF-PPO阶段的时候需要配置
     """
     do_sample: Optional[bool] = field(
         default=True,
