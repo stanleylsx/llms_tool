@@ -30,6 +30,9 @@ class BaseModels:
         self.data_manager = data_manager
         self.has_peft = False
         self.has_vhead = False
+        if world_size := os.environ.get('WORLD_SIZE') is not None:
+            self.world_size = int(world_size)
+            self.is_deepspeed_train = True
 
     def load_adapter(self, model, adapter_dir):
         if adapter_dir is None:
@@ -76,12 +79,16 @@ class BaseModels:
                         bnb_4bit_compute_dtype=self.model_args.torch_dtype,
                         bnb_4bit_use_double_quant=self.model_args.double_quantization,
                         bnb_4bit_quant_type=self.model_args.quantization_type)
-                config_kwargs['device_map'] = 'auto'
+                if self.is_deepspeed_train:
+                    device_map = {'': int(os.environ['LOCAL_RANK'])}
+                    config_kwargs['device_map'] = device_map
+                else:
+                    config_kwargs['device_map'] = 'auto'
                 self.logger.info('Quantifying(bnb) model to {} bit.'.format(self.model_args.quantization_bit))
             elif self.model_args.quantization == 'cpm':
                 self.logger.info('Quantifying(cpm) model to {} bit.'.format(self.model_args.quantization_bit))
         else:
-            if self.model_args.model_type != 'chatglm':
+            if not self.is_deepspeed_train and self.model_args.model_type != 'chatglm':
                 config_kwargs['device_map'] = 'auto'
 
         if self.model_args.checkpoint_dir is not None and self.training_args.fine_tuning_type == 'full':
@@ -106,14 +113,15 @@ class BaseModels:
 
         if self.model_args.quantization_bit is not None and self.model_args.quantization == 'cpm':
             model = self.quantize(model, self.model_args.quantization_bit)
-            model.tie_weights()
-            if self.model_args.model_type != 'chatglm':
-                device_map = infer_auto_device_map(model)
-            else:
-                device_map = auto_configure_device_map(torch.cuda.device_count(), model)
-            model = dispatch_model(model, device_map=device_map)
+            if not self.is_deepspeed_train:
+                model.tie_weights()
+                if self.model_args.model_type != 'chatglm':
+                    device_map = infer_auto_device_map(model)
+                else:
+                    device_map = auto_configure_device_map(torch.cuda.device_count(), model)
+                model = dispatch_model(model, device_map=device_map)
         else:
-            if self.model_args.model_type == 'chatglm':
+            if not self.is_deepspeed_train and self.model_args.model_type == 'chatglm':
                 model.tie_weights()
                 device_map = auto_configure_device_map(torch.cuda.device_count(), model)
                 model = dispatch_model(model, device_map=device_map)

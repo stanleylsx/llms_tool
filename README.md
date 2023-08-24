@@ -17,6 +17,7 @@ Date| Detail
 2023-08-08|奖励模型训练
 2023-08-21|RLHF的PPO方法对各个模型的训练支持
 2023-08-23|RLHF的DPO方法对各个模型的训练支持
+2023-08-24|支持deepspeed-ZeRo2分布式训练
 
 ## Requirement
 几个重要环境：
@@ -272,6 +273,24 @@ DPO方法对模型进行强化学习训练的数据和奖励模型的数据是�
 
 * 如果前面使用的是adapter在SFT模型上训练的模型，RLHF的时候项目会融合前面的adapter后创建新的adapter继续训练。
 
+### DeepSpeed
+使用deepspeed进行训练需要在TrainingArguments指定deepspeed的config文件(项目中提供了stage2的deepspeed配置)：
+```
+deepspeed: Optional[str] = field(
+    default='deepspeed_configs/zero_stage2_config.json',
+    metadata={
+        'help': 'Enable deepspeed and pass the path to deepspeed json config file (e.g. ds_config.json) '
+                'or an already loaded json file as a dict'
+    }
+)
+```
+配置好后在终端输入(单机多卡)：
+```
+deepspeed --num_gpus 3 --master_port=9901 main.py
+```
+
+* 多机多卡需要指定更多的参数，可以参考hugingface的deepspeed文档。
+
 ### Others
 Mode                | Describe                     | 
 :-------------------|------------------------------|
@@ -305,7 +324,21 @@ cpm_quantization_target: Optional[str] = field(
 - [x] 奖励模型训练
 - [x] PPO模型训练
 - [x] DPO模型训练
+- [x] 支持Deepspeed训练
 - [ ] mmlu、cmmlu和C-Eval自动化评估
 - [ ] 多轮对话的[Firefly的loss](https://mp.weixin.qq.com/s/nhogoWnzl3nrs_77r38_UA)函数集成
 - [ ] [NTK-Aware Scaled RoPE](https://kexue.fm/archives/9706)集成
 
+
+## Citation
+
+如果你在研究中使用了该项目，请按如下格式引用：
+
+```latex
+@misc{LLMs Tool,
+  title={LLMs Tool: a tool for large language models},
+  author={Shouxian Li},
+  year={2023},
+  howpublished={\url{https://github.com/StanleyLsx/llms_tool}},
+}
+```
