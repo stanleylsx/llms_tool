@@ -30,6 +30,7 @@ class BaseModels:
         self.data_manager = data_manager
         self.has_peft = False
         self.has_vhead = False
+        self.is_deepspeed_train = False
         if world_size := os.environ.get('WORLD_SIZE') is not None:
             self.world_size = int(world_size)
             self.is_deepspeed_train = True
