@@ -40,7 +40,7 @@ class ModelArguments:
         }
     )
     checkpoint_dir: Optional[str] = field(
-        default='checkpoint/sft',
+        default=None,
         metadata={
             # 保存下载的或者自己训练的adapter增量模型的地方，在RLHF时候，此处需要填写指令微调后模型所在的文件地址(如果有)。
             'help': 'Path to save the (delta) model checkpoints as well as the configurations automatically.',
@@ -78,7 +78,8 @@ class ModelArguments:
     torch_dtype: Optional[str] = field(
         default='float16',
         metadata={
-            # 默认就好。
+            # 如果全参进行模型训练，需要使用float32(混合精度训练fp16打开的时候此处也是设置float32，训练的时候优化器会自动转换模型参数为fp16)
+            # 推理或者其他方式训练可选择bfloat16或者float16
             'help': "Override the default `torch.dtype` and load the model under this dtype. If `auto` is passed, "
                     "the dtype will be automatically derived from the model's weights.",
             'choices': ['auto', 'bfloat16', 'float16', 'float32'],
@@ -264,7 +265,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         }
     )
     resume_from_checkpoint: Optional[Union[str, bool]] = field(
-        default=True,
+        default=False,
         metadata={
             'help': 'Continue train model from your checkpoint.'
         }

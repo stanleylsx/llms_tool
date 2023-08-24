@@ -38,7 +38,11 @@ class Train(BaseModels):
             if self.model_args.quantization_bit is not None:
                 raise ValueError('Full-parameter fine-tuning does not support quantization.')
             self.logger.info('Full-parameters training.')
-            model = model.float()
+            if str(model.dtype) in ['torch.float16', 'torch.bfloat16'] and (
+                    self.training_args.fp16 or self.training_args.bf16):
+                self.logger.warning('If you need training full model with fp16 or bf16,'
+                                    ' you should load model with fp32(set torch_dtype=float32)')
+                model = model.float()
             print_trainable_parameters(model, logger=self.logger)
         elif self.training_args.fine_tuning_type == 'lora':
             self.logger.info('Init new peft model.')
