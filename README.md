@@ -138,17 +138,32 @@ terminal_inference| Trminal        |
 ```
 [
   {
-    "instruction": "好的，我想问下你是谁？",
+    "instruction": "10乘以10等于多少？",
     "input": "",
-    "output": "我是一个AI模型，能够解决你提出的问题。",
+    "output": "10乘以10等于100。",
     "history": [
         "你好呀。",
-        "你好，请问您有什么需要帮助的吗？"
+        "你好，请问您有什么需要帮助的吗？",
+        "好的，我想问下你是谁？",
+        "我是一个AI模型，能够解决你提出的问题。"
       ]
   },
   ...  
 ]
 ```
+如上面所示history字段需要按照一问一答的格式存储对话历史，用于模型训练。如果没有历史对话需要让history为空列表：
+```
+[
+  {
+    "instruction": "你身份是什么？",
+    "input": "",
+    "output": "我是一个AI智能助手，由XX公司训练，我将力所能及的帮助你解决问题。",
+    "history": []
+  },
+  ...  
+]
+```
+
 使用的时候把数据路径填写到DataTrainingArguments配置里面：
 ```
 train_file_dir: Optional[str] = field(
