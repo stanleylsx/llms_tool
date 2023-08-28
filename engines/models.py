@@ -42,9 +42,11 @@ class BaseModels:
             self.logger.info(f'Found adapter model at {adapter_dir} and load it.')
             self.has_peft = True
             model = PeftModel.from_pretrained(model, adapter_dir)
-            if self.mode in ('merge_peft_model', 'save_quantized_model', 'ppo_train', 'dpo_train'):
-                self.logger.info('Merge peft model.')
-                model = model.merge_and_unload()
+            if self.training_args.fine_tuning_type in ('lora', 'adalora'):
+                # https://github.com/huggingface/peft/blob/main/src/peft/tuners/lora.py#L790
+                if self.mode in ('merge_peft_model', 'save_quantized_model', 'ppo_train', 'dpo_train'):
+                    self.logger.info('Merge peft model.')
+                    model = model.merge_and_unload()
         else:
             self.logger.info(f'The given dir: {adapter_dir} may be not have adapter checkpoint.')
         return model
