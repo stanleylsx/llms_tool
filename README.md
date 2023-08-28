@@ -307,11 +307,11 @@ deepspeed --num_gpus 3 --master_port=9901 main.py
 * 多机多卡需要指定更多的参数，可以参考hugingface的deepspeed文档。
 
 ### Others
-Mode                | Describe                     | 
-:-------------------|------------------------------|
-merge_peft_model    | 将adapter模型和基座模型融合    |
-show_model_info     | 打印模型的结构和模型的参数      |
-save_quantized_model| 量化并保存量化模型             |
+Mode                | Describe                                                                                                      | 
+:-------------------|---------------------------------------------------------------------------------------------------------------|
+merge_lora_model    | 将lora模型和基座模型融合，支持lora和adalora之后的权重合并，其它的训练方法产生的adapter直接通过peft加载即可，不支持合并|
+show_model_info     | 打印模型的结构和模型的参数                                                                                      |
+save_quantized_model| 量化并保存量化模型                                                                                             |
 
 * merge_peft_model和save_quantized_model需要在ModelArguments设置输出地址。
 ```
