@@ -10,7 +10,7 @@ import torch
 # DPO模型强化训练：           dpo_train
 # 网页端测试模型：            web_inference
 # 终端模型交互：              terminal_inference
-# 融合模型：                 merge_peft_model
+# 融合模型：                 merge_lora_model
 # 打印模型参数：              show_model_info
 # 存储量化的模型：            save_quantized_model
 # 模型效果测试及评估：        sft_batch_test

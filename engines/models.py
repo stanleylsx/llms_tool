@@ -172,7 +172,7 @@ class BaseModels:
         self.tokenizer.save_pretrained(self.model_args.quantized_or_merged_output_dir)
         self.logger.info(f'Quantize done, model saved to {self.model_args.quantized_or_merged_output_dir}')
 
-    def merge_peft_model(self):
+    def merge_lora_model(self):
         if self.model_args.checkpoint_dir is None:
             self.logger.error('checkpoint_dir is None.')
         if not os.path.exists(os.path.join(self.model_args.checkpoint_dir, WEIGHTS_NAME)) \
