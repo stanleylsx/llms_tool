@@ -58,7 +58,7 @@ if __name__ == '__main__':
     elif mode == 'merge_peft_model':
         # 融合模型
         model = BaseModels(data_manager, config, logger)
-        model.merge_peft_model()
+        model.merge_lora_model()
     elif mode == 'show_model_info':
         # 打印模型参数
         model = BaseModels(data_manager, config, logger)
