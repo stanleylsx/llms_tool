@@ -11,6 +11,7 @@ from engines.data import DataCollatorForRewardModelTraining
 from engines.utils.trainer import SFTTrainer, RewardTrainer, MyPPOTrainer
 from peft import LoraConfig, AdaLoraConfig, PromptTuningConfig, PromptEncoderConfig, PrefixTuningConfig
 from peft import TaskType, get_peft_model
+from copy import deepcopy
 from transformers import DataCollatorForSeq2Seq
 from trl import AutoModelForCausalLMWithValueHead, PPOConfig, set_seed, DPOTrainer
 from tqdm import tqdm
@@ -369,7 +370,8 @@ class Train(BaseModels):
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
             tokenizer=self.tokenizer,
-            args=self.training_args
+            args=self.training_args,
+            max_length=self.data_manager.data_args.max_input_token
         )
         self.logger.info('*** Start training. ***')
         checkpoint = None
@@ -388,3 +390,10 @@ class Train(BaseModels):
         self.logger.info(f'Saving model checkpoint to {self.training_args.output_dir}')
         dpo_trainer.save_state()
         dpo_trainer.save_model()
+
+        if self.training_args.do_eval and eval_dataset:
+            self.logger.info('*** Start evaluating. ***')
+            metrics = dpo_trainer.evaluate()
+            self.logger.info(f'Evaluating metrics: {metrics}')
+            dpo_trainer.log_metrics('eval', metrics)
+            dpo_trainer.save_metrics('eval', metrics)

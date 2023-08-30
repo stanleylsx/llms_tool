@@ -246,6 +246,12 @@ class TrainingArguments(Seq2SeqTrainingArguments):
             'help': 'Whether to use generate to calculate generative metrics (ROUGE, BLEU).'
         }
     )
+    remove_unused_columns: Optional[bool] = field(
+        default=False,
+        metadata={
+            'help': 'Remove columns not required by the model when using an nlp.Dataset.'
+        }
+    )
     num_train_epochs: float = field(
         default=5.0,
         metadata={
