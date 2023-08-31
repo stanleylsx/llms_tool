@@ -13,6 +13,7 @@ from peft import LoraConfig, AdaLoraConfig, PromptTuningConfig, PromptEncoderCon
 from peft import TaskType, get_peft_model
 from copy import deepcopy
 from transformers import DataCollatorForSeq2Seq
+from config import TrainingArguments
 from trl import AutoModelForCausalLMWithValueHead, PPOConfig, set_seed, DPOTrainer
 from tqdm import tqdm
 import torch
@@ -363,6 +364,9 @@ class Train(BaseModels):
         self.set_train_environment(model)
         self.logger.info(f'Model struct:\n{model}')
         train_dataset, eval_dataset = self.data_manager.prepare_dataset()
+        training_args = self.training_args.to_dict()
+        training_args |= {'remove_unused_columns': False}
+        training_args = TrainingArguments(**training_args)
         dpo_trainer = DPOTrainer(
             model=model,
             ref_model=ref_model,
@@ -370,7 +374,7 @@ class Train(BaseModels):
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
             tokenizer=self.tokenizer,
-            args=self.training_args,
+            args=training_args,
             max_length=self.data_manager.data_args.max_input_token
         )
         self.logger.info('*** Start training. ***')
