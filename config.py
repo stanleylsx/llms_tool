@@ -67,6 +67,16 @@ class ModelArguments:
             'help': 'Whether to use one of the fast tokenizer (backed by the tokenizers library) or not.',
         }
     )
+    use_ntk: Optional[str] = field(
+        default='linear',
+        metadata={
+            # 是否使用NTK(高频外推，低频内插)方法扩大模型的输入长度，支持ntk rope和ntk alibi，训练的时候添加可能没啥效果。
+            # linear: 简单的把旋转位置编码扩大n倍的长度，项目里面用你定义的max_input_token和原始模型的最大长度输入来决定
+            # dynamic: 根据推理文本的长度动态的调整缩放系数
+            'help': 'Whether to use NTK method to expand the token length of model input.',
+            'choices': ['linear', 'dynamic'],
+        }
+    )
     padding_side: Optional[str] = field(
         default='left',
         metadata={
@@ -200,8 +210,8 @@ class DataTrainingArguments:
     max_input_token: int = field(
         default=2048,
         metadata={
-            # 模型接受的最大输入的token数，一般来说如果基座使用了ntk aware Rope的方法后，可以把输入调得更大，平时的时候使用基座模型的规定的最大长度就好
-            'help': 'Max token of input.'
+            # 模型接受的最大输入的token数，一般来说如果基座使用了NTK的方法后，可以把输入调得更大，平时的时候使用基座模型的规定的最大长度就好
+            'help': 'Max token of model input.'
         }
     )
     ignore_pad_token_for_loss: Optional[bool] = field(

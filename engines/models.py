@@ -17,6 +17,7 @@ from peft.utils import CONFIG_NAME, WEIGHTS_NAME
 from peft import PeftModel
 from types import MethodType
 import os
+import math
 import torch
 
 
@@ -63,6 +64,42 @@ class BaseModels:
             model.load_state_dict(torch.load(vhead_path), strict=False)
         else:
             self.logger.info(f'The given dir: {vhead_dir} may be not have v_head checkpoint.')
+        return model
+
+    def use_ntk_to_expend_input_token_length(self, model):
+        ntk_type = self.model_args.use_ntk
+        max_input_token = self.data_manager.data_args.max_input_token
+        match self.model_args.model_type:
+            case 'chatglm':
+                if ntk_type == 'linear':
+                    if (rope_ratio := getattr(model.config, 'rope_ratio', None)) is not None:
+                        if (set_rope_ratio := math.ceil(max_input_token / 2048)) > rope_ratio:
+                            # https://huggingface.co/THUDM/chatglm2-6b-32k/blob/main/modeling_chatglm.py#L141
+                            model.config.rope_ratio = set_rope_ratio
+                        else:
+                            self.logger.warning('Current model support the length you set.')
+                    else:
+                        self.logger.warning('Only chatglm2-6b-32k support expend input token length.')
+                else:
+                    self.logger.warning('Native ChatGLM can not support dynamic NTK.')
+            case 'qwen':
+                if ntk_type == 'dynamic':
+                    # https://huggingface.co/Qwen/Qwen-7B-Chat/blob/main/modeling_qwen.py#L1165
+                    model.config.use_dynamic_ntk = True
+                else:
+                    self.logger.warning('Native Qwen can not support linear NTK.')
+            case 'llama':
+                if (max_position_embeddings := getattr(model.config, 'max_position_embeddings', None)) >= max_input_token:
+                    factor = math.ceil(max_input_token / max_position_embeddings)
+                    match ntk_type:
+                        case 'dynamic':
+                            # https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L147
+                            model.config.rope_scaling = {'type': 'dynamic', 'factor': factor}
+                        case 'linear':
+                            # https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L128
+                            model.config.rope_scaling = {'type': 'linear', 'factor': factor}
+                else:
+                    self.logger.warning('Current model support the length you set.')
         return model
 
     def load_base_model(self):
@@ -113,6 +150,9 @@ class BaseModels:
             model = BloomForCausalLM.from_pretrained(model_to_load, **config_kwargs)
         else:
             raise
+
+        if self.model_args.use_ntk is not None:
+            model = self.use_ntk_to_expend_input_token_length(model)
 
         if self.model_args.quantization_bit is not None and self.model_args.quantization == 'cpm':
             model = self.quantize(model, self.model_args.quantization_bit)
