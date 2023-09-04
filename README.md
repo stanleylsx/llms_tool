@@ -130,6 +130,16 @@ terminal_inference| Trminal        |
 
 * 预测的时候，模型会优先从你定义的ModelArguments中的checkpoint_dir读取，如果该文件下没有参数文件，则从TrainingArguments的output_dir文件夹加载，如果都没有则只加载最初的基座模型。
 
+#### NTK
+目前原生的config就能支持NTK方法的有[chatglm2-6b-32k](https://huggingface.co/THUDM/chatglm2-6b-32k)、LLama系列和[Qwen-7B-Chat](https://huggingface.co/Qwen/Qwen-7B-Chat)：
+Model          |Position Encoder|Support NTK Type| 
+:--------------|----------------|----------------|
+chatglm2-6b-32k| Rope           |  Linear        |
+Qwen-7B-Chat   | Rope           | Dynamic        |
+LLama系列      | Rope            |Dynamic、Linear |
+
+* 其他的模型需要自己更改原始的模型文件去支持NTK方法，比如可用于Aliba编码的模型Baichuan、Falcon、Bloom系列的[NTK-ALibi](https://github.com/keezen/ntk_alibi)。一般来说，NTK主要用在推断的时候突破模型的输入token限制，但是训练的时候打开NTK可能会得不到想要的效果。
+
 ### SFT training
 
 #### 训练数据
@@ -339,9 +349,9 @@ cpm_quantization_target: Optional[str] = field(
 - [x] PPO模型训练
 - [x] DPO模型训练
 - [x] 支持Deepspeed训练
+- [x] [NTK-Aware Scaled RoPE](https://kexue.fm/archives/9706)集成
 - [ ] mmlu、cmmlu和C-Eval自动化评估
 - [ ] 多轮对话的[Firefly的loss](https://mp.weixin.qq.com/s/nhogoWnzl3nrs_77r38_UA)函数集成
-- [ ] [NTK-Aware Scaled RoPE](https://kexue.fm/archives/9706)集成
 
 
 ## Citation
