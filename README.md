@@ -44,7 +44,7 @@ Bloom    | 560M、9B、7B1M|[bloom](https://huggingface.co/bigscience/bloom)、[
 LLama1   | 3B、7B、13B   |[openllama](https://huggingface.co/openlm-research)、[chinese-alpaca](https://github.com/ymcui/Chinese-LLaMA-Alpaca)、[ziya](https://huggingface.co/IDEA-CCNL)
 LLama2   | 7B、13B      |[llama2](https://huggingface.co/meta-llama)
 Baichuan | 7B、13B      |[baichuan](https://huggingface.co/baichuan-inc)
-Baichuan2| 7B、13B      |[baichuan](https://huggingface.co/baichuan-inc)
+Baichuan2| 7B、13B      |[baichuan2](https://huggingface.co/baichuan-inc)
 Falcon   | 7B           |[falcon](https://huggingface.co/tiiuae/falcon-7b)、[chinese-Falcon](https://huggingface.co/Linly-AI)
 Aquila   | 7B           |[aquila](https://huggingface.co/BAAI)
 InternLM | 7B           |[internlm](https://huggingface.co/internlm)
@@ -352,8 +352,8 @@ cpm_quantization_target: Optional[str] = field(
 - [x] DPO模型训练
 - [x] 支持Deepspeed训练
 - [x] [NTK-Aware Scaled RoPE](https://kexue.fm/archives/9706)集成
-- [ ] mmlu、cmmlu和C-Eval自动化评估
 - [ ] 多轮对话的[Firefly的loss](https://mp.weixin.qq.com/s/nhogoWnzl3nrs_77r38_UA)函数集成
+- [ ] mmlu、cmmlu和C-Eval自动化评估
 
 
 ## Citation
