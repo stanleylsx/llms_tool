@@ -19,6 +19,7 @@ def auto_configure_device_map(num_gpus, model):
     for key, _ in model.named_modules():
         if key.endswith('rotary_pos_emb'):
             chatglm2 = True
+            break
 
     if chatglm2:
         device_map = {
