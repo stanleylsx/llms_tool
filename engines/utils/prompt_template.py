@@ -132,6 +132,14 @@ class Template:
             self.prompt = '<reserved_102>{query}<reserved_103>'
             self.sep = ''
             self.use_history = True
+        elif self.prompt_template == 'baichuan2':
+            r"""
+            Supports: https://huggingface.co/baichuan-inc/Baichuan2-7B-Chat
+            """
+            self.prefix = ''
+            self.prompt = '<reserved_106>{query}<reserved_107>'
+            self.sep = ''
+            self.use_history = True
         elif self.prompt_template == 'chatglm':
             r"""
             Supports: https://huggingface.co/THUDM/chatglm2-6b

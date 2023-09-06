@@ -185,12 +185,13 @@ class DataTrainingArguments:
         }
     )
     prompt_template: Optional[str] = field(
-        default='chatglm',
+        default='internlm',
         metadata={
             # 选择对应模型的模板prompt，一般Chat模型的出品方都会有一个固定的prompt，这部分很重要，预测训练阶段都需要根据chat模型的要求修改
             'help': 'Which template to use for constructing prompts in training and inference.',
             'choices': ['default', 'vanilla', 'alpaca', 'vicuna', 'belle', 'linly', 'billa', 'ziya', 'aquila',
-                        'firefly', 'openbuddy', 'internlm', 'baichuan', 'chatglm', 'qwen', 'moss', 'rwkv', 'linksoul', 'xverse']
+                        'firefly', 'openbuddy', 'internlm', 'baichuan', 'baichuan', 'chatglm', 'qwen', 'moss',
+                        'linksoul', 'xverse']
         }
     )
     overwrite_cache: Optional[bool] = field(
