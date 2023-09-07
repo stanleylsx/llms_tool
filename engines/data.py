@@ -32,7 +32,7 @@ class DataManager:
         if self.model_args.model_type in ['chatglm', 'baichuan', 'internlm', 'aquila', 'moss', 'qwen', 'xverse']:
             tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
         elif self.model_args.model_type == 'falcon':
-            tokenizer = AutoTokenizer.from_pretrained(model_path, padding_side=self.model_args.padding_side)
+            tokenizer = AutoTokenizer.from_pretrained(model_path)
         elif self.model_args.model_type == 'rwkv':
             tokenizer = AutoTokenizer.from_pretrained(model_path)
         elif self.model_args.model_type == 'bloom':
