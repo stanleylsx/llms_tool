@@ -24,8 +24,6 @@ Date| Detail
 几个重要环境：
 * python：3.10+  
 * torch：2.0.1+  
-* peft：0.4.0（该版本已支持量化4bit下的lora/adalora训练）
-* accelerate：0.21.0+
 * bitsandbytes：不同操作系统下需要对应安装不同的包（Linux下0.39.0+，Windows下要专门下载对应的wheel本地安装）
 
 其它环境见requirements.txt
