@@ -4,7 +4,7 @@
 # @Email : gzlishouxian@gmail.com
 # @File : predict.py
 # @Software: PyCharm
-from transformers import AutoModel, LlamaForCausalLM, BloomForCausalLM, AutoModelForCausalLM, RwkvForCausalLM
+from transformers import AutoModel, LlamaForCausalLM, BloomForCausalLM, AutoModelForCausalLM, RwkvForCausalLM, FalconForCausalLM
 from transformers import BitsAndBytesConfig
 from transformers import PreTrainedModel
 from transformers.generation.utils import GenerationConfig
@@ -89,7 +89,7 @@ class BaseModels:
                 else:
                     self.logger.warning('Native Qwen can not support linear NTK.')
             case 'llama':
-                if (max_position_embeddings := getattr(model.config, 'max_position_embeddings', None)) >= max_input_token:
+                if max_input_token > (max_position_embeddings := getattr(model.config, 'max_position_embeddings', None)):
                     factor = math.ceil(max_input_token / max_position_embeddings)
                     match ntk_type:
                         case 'dynamic':
@@ -100,6 +100,22 @@ class BaseModels:
                             model.config.rope_scaling = {'type': 'linear', 'factor': factor}
                 else:
                     self.logger.warning('Current model support the length you set.')
+            case 'falcon':
+                if model.config.alibi:
+                    # https://github.com/huggingface/transformers/blob/main/src/transformers/models/falcon/configuration_falcon.py#L181
+                    self.logger.warning('`rope_scaling` is not supported when `alibi` is `True`.')
+                else:
+                    if max_input_token > 2048:
+                        factor = math.ceil(max_input_token / 2048)
+                        match ntk_type:
+                            case 'dynamic':
+                                # https://github.com/huggingface/transformers/blob/main/src/transformers/models/falcon/modeling_falcon.py#L143
+                                model.config.rope_scaling = {'type': 'dynamic', 'factor': factor}
+                            case 'linear':
+                                # https://github.com/huggingface/transformers/blob/main/src/transformers/models/falcon/modeling_falcon.py#L117
+                                model.config.rope_scaling = {'type': 'linear', 'factor': factor}
+                    else:
+                        self.logger.warning('Current model support the length you set.')
         return model
 
     def load_base_model(self):
@@ -138,7 +154,9 @@ class BaseModels:
 
         if self.model_args.model_type == 'chatglm':
             model = AutoModel.from_pretrained(model_to_load, trust_remote_code=True, **config_kwargs)
-        elif self.model_args.model_type in ['falcon', 'baichuan', 'aquila', 'internlm', 'moss', 'qwen', 'xverse']:
+        elif self.model_args.model_type == 'falcon':
+            model = FalconForCausalLM.from_pretrained(model_to_load, **config_kwargs)
+        elif self.model_args.model_type in ['baichuan', 'aquila', 'internlm', 'moss', 'qwen', 'xverse']:
             model = AutoModelForCausalLM.from_pretrained(model_to_load, trust_remote_code=True, **config_kwargs)
             if self.model_args.model_type == 'qwen':
                 model.generate = MethodType(PreTrainedModel.generate, model)
