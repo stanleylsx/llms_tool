@@ -139,7 +139,7 @@ Qwen-7B-Chat   | Rope           | Dynamic        |
 LLama系列      | Rope            |Dynamic、Linear |
 Falcon系列     | Rope           |Dynamic、Linear |
 
-* 其他的模型需要自己更改原始的模型文件去支持NTK方法，比如可用于Aliba编码的模型Baichuan、Falcon、Bloom系列的[NTK-ALibi](https://github.com/keezen/ntk_alibi)。一般来说，NTK主要用在推断的时候突破模型的输入token限制，但是训练的时候打开NTK可能会得不到想要的效果。
+* 其他的模型需要自己更改原始的模型文件去支持NTK方法，比如可用于Alibi编码的模型Baichuan、Falcon、Bloom系列的[NTK-ALibi](https://github.com/keezen/ntk_alibi)。一般来说，NTK主要用在推断的时候突破模型的输入token限制，但是训练的时候打开NTK可能会得不到想要的效果。
 * Falcon系列的模型HF官方提供了两种编码方式，分别是Rope和Alibi，但是tiiuae官方目前只有Alibi的实现，不知道此举为何，所以此处仅支持使用Rope编码方式的NTK方法。
 
 ### SFT training
@@ -334,7 +334,7 @@ quantized_or_merged_output_dir: Optional[str] = field(
     }
 )
 ```
-* 使用bnb量化将会默认对所有线性层进行量化，使用cpm量化则需要在ModelArguments设置中手动设置哪些线性层需要量化。
+* 使用bnb和cpm量化将会默认对除了输出层的所有线性层进行量化。
 
 ```
 cpm_quantization_target: Optional[str] = field(
