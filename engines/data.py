@@ -48,7 +48,7 @@ class DataManager:
             tokenizer.eos_token = '<|endoftext|>'
             tokenizer.pad_token = tokenizer.eos_token
         if tokenizer.pad_token_id is None:
-            tokenizer.pad_token_id = 0
+            tokenizer.pad_token_id = tokenizer.eos_token_id if tokenizer.eos_token_id is not None else 0
 
         return tokenizer
 
@@ -62,6 +62,8 @@ class DataManager:
             gen_kwargs['eos_token_id'] = eos_token_id
         elif self.model_args.model_type == 'qwen':
             gen_kwargs['eos_token_id'] = 151645
+        elif self.model_args.model_type == 'falcon':
+            gen_kwargs['pad_token_id'] = self.tokenizer.eos_token_id
         return gen_kwargs
 
     def load_datasets_from_files(self, test=False):
