@@ -6,7 +6,7 @@
 
 
 ## Introduction
-一个基于🤗[HuggingFace](https://huggingface.co/)开发的大语言模型训练、测试工具。支持不同模型的webui、终端预测，支持各模型的低参数量及全参数模型训练和融合，RLHF训练(PPO和DPO两种方法)。  
+一个基于🤗[HuggingFace](https://huggingface.co/)开发的大语言模型训练、测试工具。支持不同模型的webui、终端预测，支持各模型的低参数量及全参数模型训练和融合，RLHF训练(PPO和DPO两种方法)。同时支持deepspeed训练。
 作者习惯于把配置和要做的事情都写在一个配置文件里面，然后以一个主函数作为入口直接运行，所以才有了这个项目。
 
 
