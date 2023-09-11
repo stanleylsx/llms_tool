@@ -198,14 +198,16 @@ class Template:
         else:
             raise ValueError('Template {} does not exist.'.format(self.prompt_template))
 
-    def get_prompt(self, query, history):
+    def get_prompt(self, query, history, join_history=True):
         r"""
         Returns a string containing prompt without response.
         """
-        return ''.join(self._format_example(query, history))
+        format_result = self._format_example(query, history)
+        return ''.join(format_result) if join_history else format_result
 
     def _format_example(self, query, history):
-        prefix = self.prefix + self.sep if self.prefix else ''  # add separator for non-empty prefix
+        # add separator for non-empty prefix
+        prefix = self.prefix + self.sep if self.prefix else ''
         history = history if (history and self.use_history) else []
         history = history + [(query, '<dummy>')]
         conversations = []
@@ -224,4 +226,5 @@ class Template:
                 else:
                     conversations.append(self.sep + self.prompt.format(query=user_query))
                     conversations.append(bot_resp)
-        return conversations[:-1]  # drop last
+        # drop last
+        return conversations[:-1]

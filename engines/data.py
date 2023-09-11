@@ -27,6 +27,7 @@ class DataManager:
             self.label_pad_token_id = -100
         else:
             self.label_pad_token_id = self.tokenizer.pad_token_id
+        self.use_firefly_loss = self.training_args.use_firefly_loss
 
     def load_tokenizer(self, model_path):
         if self.model_args.model_type in ['chatglm', 'baichuan', 'internlm', 'aquila', 'moss', 'qwen', 'xverse']:
@@ -116,16 +117,27 @@ class DataManager:
         self.logger.info(f'Raw datasets: {raw_datasets}')
         return raw_datasets
 
-    def format_example(self, examples):
+    def format_example(self, examples, join_history=True):
         for i in range(len(examples['instruction'])):
             if examples['instruction'][i] and examples['output'][i]:
                 query, answer = examples['instruction'][i], examples['output'][i]
                 query = query + examples['input'][i] if examples['input'][i] else query
                 if 'history' in examples and (history := examples['history'][i]) is not None:
-                    prompt = self.prompt_template.get_prompt(query, history)
+                    prompt = self.prompt_template.get_prompt(query, history, join_history)
                 else:
-                    prompt = self.prompt_template.get_prompt(query, [])
+                    prompt = self.prompt_template.get_prompt(query, [], join_history)
                 yield prompt, answer
+
+    def transfer_front_tail_to_label_pad_token_id(self, label):
+        start_pointer = 0
+        end_pointer = len(label) - 1
+        while label[start_pointer] != self.label_pad_token_id:
+            label[start_pointer] = self.label_pad_token_id
+            start_pointer += 1
+        while label[end_pointer] != self.label_pad_token_id:
+            label[end_pointer] = self.label_pad_token_id
+            end_pointer -= 1
+        return label
 
     def preprocess_train_supervised_fine_tuning_dataset(self, examples):
         # ChatGLM1: https://huggingface.co/THUDM/chatglm-6b/blob/main/tokenization_chatglm.py#L323
@@ -135,69 +147,115 @@ class DataManager:
         # moss: https://huggingface.co/fnlp/moss-moon-003-sft/blob/main/tokenization_moss.py#L226
         # Llama: https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/tokenization_llama.py#L296
         inputs_list = []
+        attention_mask_list = []
         labels_list = []
-        for prompt, answer in self.format_example(examples):
-            if self.model_args.model_type in ('chatglm', 'baichuan', 'internlm', 'moss', 'llama'):
+        if self.training_args.use_firefly_loss:
+            for prompt, answer in self.format_example(examples, False):
+                source_ids = []
+                labels = []
+                for i, sentence in enumerate(prompt):
+                    if i % 2 == 0:
+                        sentence_ids = self.tokenizer.encode(text=sentence, add_special_tokens=False)
+                        source_ids.extend(sentence_ids)
+                        labels.extend([self.label_pad_token_id] * (len(sentence_ids)))
+                    else:
+                        sentence_ids = self.tokenizer.encode(text=sentence, add_special_tokens=False)
+                        sentence_ids = sentence_ids + [self.tokenizer.eos_token_id]
+                        source_ids.extend(sentence_ids)
+                        labels.extend(sentence_ids)
+                target_ids = self.tokenizer.encode(text=answer, add_special_tokens=False)
+                if self.model_args.model_type in ('chatglm', 'baichuan', 'internlm', 'moss', 'llama'):
+                    input_ids = self.tokenizer.build_inputs_with_special_tokens(source_ids, target_ids)
+                    labels = self.tokenizer.build_inputs_with_special_tokens(labels)
+                    context_length = len(labels)
+                    labels = self.transfer_front_tail_to_label_pad_token_id(labels)
+                    labels = labels + input_ids[context_length:]
+                else:
+                    input_ids = source_ids + target_ids + [self.tokenizer.eos_token_id]
+                    if self.tokenizer.bos_token_id is not None:
+                        input_ids = [self.tokenizer.bos_token_id] + input_ids
+                        labels = [self.label_pad_token_id] + labels
+                    labels = labels + target_ids + [self.tokenizer.eos_token_id]
+                attention_mask = [1] * len(input_ids)
+                if len(input_ids) > self.data_args.max_input_token:
+                    self.logger.warning(f'The token length of some sentences exceeds {self.data_args.max_input_token}.')
+                    input_ids = input_ids[:self.data_args.max_input_token]
+                    labels = labels[:self.data_args.max_input_token]
+                    attention_mask = attention_mask[:self.data_args.max_input_token]
+                inputs_list.append(input_ids)
+                attention_mask_list.append(attention_mask)
+                labels_list.append(labels)
+        else:
+            for prompt, answer in self.format_example(examples):
                 source_ids = self.tokenizer.encode(text=prompt, add_special_tokens=False)
                 target_ids = self.tokenizer.encode(text=answer, add_special_tokens=False)
-                input_ids = self.tokenizer.build_inputs_with_special_tokens(source_ids, target_ids)
-                context_length = len(self.tokenizer.build_inputs_with_special_tokens(source_ids))
-                labels = [self.label_pad_token_id] * context_length + input_ids[context_length:]
-            else:
-                source_ids = self.tokenizer.encode(text=prompt, add_special_tokens=True)
-                target_ids = self.tokenizer.encode(text=answer, add_special_tokens=True)
-                input_ids = source_ids + target_ids + [self.tokenizer.eos_token_id]
-                context_length = len(source_ids)
-                if self.tokenizer.bos_token_id is not None:
-                    input_ids = [self.tokenizer.bos_token_id] + input_ids
-                    context_length = context_length + 1
-                labels = [self.label_pad_token_id] * context_length + target_ids + [self.tokenizer.eos_token_id]
-            if len(input_ids) > self.data_args.max_input_token:
-                self.logger.warning(f'The token length of some sentences exceeds {self.data_args.max_input_token}.')
-            inputs_list.append(input_ids)
-            labels_list.append(labels)
-        return {'input_ids': inputs_list, 'labels': labels_list}
+                if self.model_args.model_type in ('chatglm', 'baichuan', 'internlm', 'moss', 'llama'):
+                    input_ids = self.tokenizer.build_inputs_with_special_tokens(source_ids, target_ids)
+                    context_length = len(self.tokenizer.build_inputs_with_special_tokens(source_ids))
+                    labels = [self.label_pad_token_id] * context_length + input_ids[context_length:]
+                else:
+                    input_ids = source_ids + target_ids + [self.tokenizer.eos_token_id]
+                    context_length = len(source_ids)
+                    if self.tokenizer.bos_token_id is not None:
+                        input_ids = [self.tokenizer.bos_token_id] + input_ids
+                        context_length = context_length + 1
+                    labels = [self.label_pad_token_id] * context_length + target_ids + [self.tokenizer.eos_token_id]
+                attention_mask = [1] * len(input_ids)
+                if len(input_ids) > self.data_args.max_input_token:
+                    self.logger.warning(f'The token length of some sentences exceeds {self.data_args.max_input_token}.')
+                    input_ids = input_ids[:self.data_args.max_input_token]
+                    labels = labels[:self.data_args.max_input_token]
+                    attention_mask = attention_mask[:self.data_args.max_input_token]
+                inputs_list.append(input_ids)
+                attention_mask_list.append(attention_mask)
+                labels_list.append(labels)
+        return {'input_ids': inputs_list, 'attention_mask': attention_mask_list, 'labels': labels_list}
 
     def preprocess_eval_supervised_fine_tuning_dataset(self, examples):
-        inputs_list, labels_list = [], []
+        inputs_list = []
+        attention_mask_list = []
+        labels_list = []
         for prompt, answer in self.format_example(examples):
+            source_ids = self.tokenizer.encode(text=prompt, add_special_tokens=False)
+            target_ids = self.tokenizer.encode(text=answer, add_special_tokens=False)
             if self.model_args.model_type in ('chatglm', 'baichuan', 'internlm', 'moss', 'llama'):
-                source_ids = self.tokenizer.encode(text=prompt, add_special_tokens=False)
-                target_ids = self.tokenizer.encode(text=answer, add_special_tokens=False)
                 input_ids = self.tokenizer.build_inputs_with_special_tokens(source_ids)
                 labels = target_ids + [self.tokenizer.eos_token_id]
             else:
-                source_ids = self.tokenizer.encode(text=prompt, add_special_tokens=True)
-                target_ids = self.tokenizer.encode(text=answer, add_special_tokens=True)
                 input_ids = source_ids
                 if self.tokenizer.bos_token_id is not None:
                     input_ids = [self.tokenizer.bos_token_id] + source_ids
                 labels = target_ids + [self.tokenizer.eos_token_id]
+            attention_mask = [1] * len(input_ids)
             if len(input_ids) > self.data_args.max_input_token:
                 self.logger.warning(f'The token length of some sentences exceeds {self.data_args.max_input_token}.')
+                input_ids = input_ids[:self.data_args.max_input_token]
+                attention_mask = attention_mask[:self.data_args.max_input_token]
             inputs_list.append(input_ids)
+            attention_mask_list.append(attention_mask)
             labels_list.append(labels)
-        return {'input_ids': inputs_list, 'labels': labels_list}
+        return {'input_ids': inputs_list, 'attention_mask': attention_mask_list, 'labels': labels_list}
 
     def preprocess_train_reward_model_dataset(self, examples):
         accept_list, reject_list = [], []
         for prompt, answer in self.format_example(examples):
+            source_ids = self.tokenizer.encode(text=prompt, add_special_tokens=False)
+            accept_ids = self.tokenizer.encode(text=answer[0], add_special_tokens=False)
+            reject_ids = self.tokenizer.encode(text=answer[1], add_special_tokens=False)
             if self.model_args.model_type in ('chatglm', 'baichuan', 'internlm', 'moss', 'llama'):
-                source_ids = self.tokenizer.encode(text=prompt, add_special_tokens=False)
-                accept_ids = self.tokenizer.encode(text=answer[0], add_special_tokens=False)
-                reject_ids = self.tokenizer.encode(text=answer[1], add_special_tokens=False)
                 accept_ids = self.tokenizer.build_inputs_with_special_tokens(source_ids, accept_ids)
                 reject_ids = self.tokenizer.build_inputs_with_special_tokens(source_ids, reject_ids)
             else:
-                source_ids = self.tokenizer.encode(text=prompt, add_special_tokens=True)
-                accept_ids = self.tokenizer.encode(text=answer[0], add_special_tokens=True)
-                reject_ids = self.tokenizer.encode(text=answer[1], add_special_tokens=True)
                 if self.tokenizer.bos_token_id is not None:
                     source_ids = [self.tokenizer.bos_token_id] + source_ids
                 accept_ids = source_ids + accept_ids + [self.tokenizer.eos_token_id]
                 reject_ids = source_ids + reject_ids + [self.tokenizer.eos_token_id]
+
             if len(accept_ids) > self.data_args.max_input_token or len(reject_ids) > self.data_args.max_input_token:
                 self.logger.warning(f'The token length of some sentences exceeds {self.data_args.max_input_token}.')
+                accept_ids = accept_ids[:self.data_args.max_input_token]
+                reject_ids = reject_ids[:self.data_args.max_input_token]
+
             accept_list.append(accept_ids)
             reject_list.append(reject_ids)
         return {'accept_ids': accept_list, 'reject_ids': reject_list}
@@ -212,7 +270,7 @@ class DataManager:
 
     def prepare_dataset(self, test=False):
 
-        def propocess_dataset(process_func, dataset, shuffle=True):
+        def process_dataset(process_func, dataset, shuffle=True):
             with self.training_args.main_process_first(desc='Handle dataset.'):
                 if shuffle:
                     dataset = dataset.shuffle()
@@ -230,13 +288,13 @@ class DataManager:
             raw_datasets = self.load_datasets_from_files()
             train_dataset = raw_datasets['train']
             if self.mode == 'sft_train':
-                train_dataset = propocess_dataset(self.preprocess_train_supervised_fine_tuning_dataset, train_dataset)
+                train_dataset = process_dataset(self.preprocess_train_supervised_fine_tuning_dataset, train_dataset)
             elif self.mode == 'rm_train':
-                train_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, train_dataset)
+                train_dataset = process_dataset(self.preprocess_train_reward_model_dataset, train_dataset)
             elif self.mode == 'ppo_train':
-                train_dataset = propocess_dataset(self.preprocess_eval_supervised_fine_tuning_dataset, train_dataset)
+                train_dataset = process_dataset(self.preprocess_eval_supervised_fine_tuning_dataset, train_dataset)
             elif self.mode == 'dpo_train':
-                train_dataset = propocess_dataset(self.preprocess_train_dpo_text_dataset, train_dataset)
+                train_dataset = process_dataset(self.preprocess_train_dpo_text_dataset, train_dataset)
             self.logger.debug(f'Train dataset nums: {len(train_dataset)}')
 
             eval_dataset = None
@@ -245,20 +303,20 @@ class DataManager:
                     raise ValueError('do_eval requires a validation dataset')
                 eval_dataset = raw_datasets['validation']
                 if self.mode == 'sft_train':
-                    eval_dataset = propocess_dataset(self.preprocess_eval_supervised_fine_tuning_dataset, eval_dataset, False)
+                    eval_dataset = process_dataset(self.preprocess_eval_supervised_fine_tuning_dataset, eval_dataset, False)
                 elif self.mode == 'rm_train':
-                    eval_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, eval_dataset, False)
+                    eval_dataset = process_dataset(self.preprocess_train_reward_model_dataset, eval_dataset, False)
                 elif self.mode == 'dpo_train':
-                    eval_dataset = propocess_dataset(self.preprocess_train_dpo_text_dataset, eval_dataset, False)
+                    eval_dataset = process_dataset(self.preprocess_train_dpo_text_dataset, eval_dataset, False)
                 self.logger.debug(f'Validation dataset nums: {len(eval_dataset)}')
             return train_dataset, eval_dataset
         else:
             raw_datasets = self.load_datasets_from_files(test=True)
             test_dataset = raw_datasets['test']
             if self.mode == 'sft_batch_test':
-                test_dataset = propocess_dataset(self.preprocess_eval_supervised_fine_tuning_dataset, test_dataset, False)
+                test_dataset = process_dataset(self.preprocess_eval_supervised_fine_tuning_dataset, test_dataset, False)
             elif self.mode == 'rm_batch_test':
-                test_dataset = propocess_dataset(self.preprocess_train_reward_model_dataset, test_dataset, False)
+                test_dataset = process_dataset(self.preprocess_train_reward_model_dataset, test_dataset, False)
             self.logger.debug(f'Test dataset nums: {len(test_dataset)}')
             return test_dataset
 

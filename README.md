@@ -19,6 +19,7 @@ Date| Detail
 2023-08-23|RLHF的DPO方法对各个模型的训练支持
 2023-08-24|支持deepspeed-ZeRo2分布式训练
 2023-09-04|支持部分可以从配置修改使用NTK的模型
+2023-09-11|多轮对话的[Firefly的loss](https://mp.weixin.qq.com/s/nhogoWnzl3nrs_77r38_UA)训练函数集成
 
 ## Requirement
 几个重要环境：
@@ -196,20 +197,22 @@ validation_file_dir: Optional[str] = field(
 #### 训练配置
 需要在config.py中对应修改mode为sft_train，然后在TrainingArguments中配置好各项训练参数，然后运行main.py。常用的一些参数如下：
 
-Arguments                    | Describe               | 
-:----------------------------|------------------------|
-fine_tuning_type             | 训练方式                |
-output_dir                   | 训练结果输出的文件夹     |
-num_train_epochs             | 训练的轮次              |
-gradient_accumulation_steps  | 梯度累积                |
-per_device_train_batch_size  | 每个设备上的批大小       |
-learning_rate                | 学习率                  |
-fp16                         | 设置True为开混合精度运算 |
+Arguments                    | Describe                | 
+:----------------------------|-------------------------|
+fine_tuning_type             | 训练方式                  |
+use_firefly_loss             | 使用Firefly loss训练模型   |
+output_dir                   | 训练结果输出的文件夹        |
+num_train_epochs             | 训练的轮次                 |
+gradient_accumulation_steps  | 梯度累积                   |
+per_device_train_batch_size  | 每个设备上的批大小           |
+learning_rate                | 学习率                    |
+fp16                         | 设置True为开混合精度运算     |
 
 
 * 需要使用deepspeed的时候，将配置文件的json路径，填写到TrainingArguments的deepspeed参数中。
 * Lora和其它adapter训练方式的配置参数也在TrainingArguments中，这里面要注意lora_target的设置要根据自己的模型结构来，配置中给了一些参考。
 * QLora只支持Lora和AdaLora两种方式，量化方式需要选择bnb，支持int4和int8两种量化。
+* Firefly Loss不支持ChatGLM6B等Prefix LM模型。
 
 ```
 quantization: Optional[str] = field(
@@ -352,7 +355,7 @@ cpm_quantization_target: Optional[str] = field(
 - [x] DPO模型训练
 - [x] 支持Deepspeed训练
 - [x] [NTK-Aware Scaled RoPE](https://kexue.fm/archives/9706)集成
-- [ ] 多轮对话的[Firefly的loss](https://mp.weixin.qq.com/s/nhogoWnzl3nrs_77r38_UA)函数集成
+- [x] 多轮对话的[Firefly的loss](https://mp.weixin.qq.com/s/nhogoWnzl3nrs_77r38_UA)函数集成
 - [ ] mmlu、cmmlu和C-Eval自动化评估
 
 

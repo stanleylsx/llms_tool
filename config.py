@@ -185,7 +185,7 @@ class DataTrainingArguments:
         }
     )
     prompt_template: Optional[str] = field(
-        default='internlm',
+        default='chatglm',
         metadata={
             # 选择对应模型的模板prompt，一般Chat模型的出品方都会有一个固定的prompt，这部分很重要，预测训练阶段都需要根据chat模型的要求修改
             'help': 'Which template to use for constructing prompts in training and inference.',
@@ -233,6 +233,13 @@ class TrainingArguments(Seq2SeqTrainingArguments):
             'choices': ['full', 'lora', 'adalora', 'prompt_tuning', 'p_tuning', 'prefix_tuning']
         }
     )
+    use_firefly_loss: bool = field(
+        default=True,
+        metadata={
+            # 多轮对话的Firefly的loss函数集成：https://mp.weixin.qq.com/s/nhogoWnzl3nrs_77r38_UA
+            'help': 'Whether to use firefly loss.'
+        }
+    )
     output_dir: str = field(
         default='checkpoint/sft',
         metadata={
@@ -276,7 +283,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         }
     )
     resume_from_checkpoint: Optional[Union[str, bool]] = field(
-        default=False,
+        default=True,
         metadata={
             'help': 'Continue train model from your checkpoint.'
         }
