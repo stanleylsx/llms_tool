@@ -73,15 +73,15 @@ Prefix Tuning | ✅     |
 两种量化方式分别为基于bitsandbytes的bnb和cpm_kernels组件的cpm，其中cpm量化脚本来自[quantization.py](https://huggingface.co/THUDM/chatglm2-6b/blob/main/quantization.py)。
 
 ### Metric
-跑测试集时会输出下面四个常规的生成模型评估结果，结果仅限参考，大模型的事实性评估目前没有更好的办法，都是各个模型出品方或评测机构在各维度上制作数据集做评测，相对比较主观。   
+不同训练阶段跑测试集时会输出下面一些常规的生成模型评估结果，结果仅限参考，大模型的事实性评估目前没有更好的办法，都是各个模型出品方或评测机构在各维度上制作数据集做评测，相对比较主观。   
 
-Metric  |Supported| 
-:-------|---------|
-Rouge-1 | ✅     |
-Rouge-2 | ✅     |
-Rouge-l | ✅     |
-ppl     | ✅     |
-
+Metric  |Supported| Training Stage|
+:-------|---------|---------------|
+Rouge-1 | ✅     |SFT Training    |
+Rouge-2 | ✅     |SFT Training    |
+Rouge-l | ✅     |SFT Training    |
+ppl     | ✅     |SFT Training    |
+accuracy| ✅     |PPO-RM Training |
 
 ## Getting start
 开始之前，需要确定试验的模型，并把整个模型文件从huggingface上下载下来，完成两步：
