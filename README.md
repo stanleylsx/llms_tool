@@ -213,7 +213,7 @@ fp16                         | 设置True为开混合精度运算     |
 * 需要使用deepspeed的时候，将配置文件的json路径，填写到TrainingArguments的deepspeed参数中。
 * Lora和其它adapter训练方式的配置参数也在TrainingArguments中，这里面要注意lora_target的设置要根据自己的模型结构来，配置中给了一些参考。
 * QLora只支持Lora和AdaLora两种方式，量化方式需要选择bnb，支持int4和int8两种量化。
-* Firefly Loss不支持ChatGLM6B等Prefix LM模型。
+* Firefly Loss仅作用在SFT训练阶段且不支持ChatGLM6B等Prefix LM模型。
 
 ```
 quantization: Optional[str] = field(
