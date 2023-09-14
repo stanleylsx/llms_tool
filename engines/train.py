@@ -359,7 +359,7 @@ class Train(BaseModels):
         self.logger.info(f'Load base model from {self.model_args.model_path}')
         model = self.load_base_model()
         model = self.load_adapter(model, adapter_dir=self.model_args.checkpoint_dir)
-        ref_model = deepcopy(model)
+        ref_model = deepcopy(model).eval()
         model = self.construct_base_model(model)
         self.set_train_environment(model)
         self.logger.info(f'Model struct:\n{model}')
