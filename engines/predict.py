@@ -29,7 +29,7 @@ class Predictor(BaseModels):
         self.model.eval()
 
     def web_inference(self):
-        def predict(input, chatbot, history, max_new_tokens, top_p, temperature):
+        def predict(input, chatbot, history, max_new_tokens, top_p, repetition_penalty, temperature):
             chatbot.append((parse_text(input), ''))
             prompt_template = self.prompt_template.get_prompt(input, history)
             if self.model_args.model_type == 'qwen':
@@ -45,7 +45,7 @@ class Predictor(BaseModels):
                 'temperature': temperature,
                 'top_p': top_p,
                 'top_k': self.generating_args.top_k,
-                'repetition_penalty': self.generating_args.repetition_penalty,
+                'repetition_penalty': repetition_penalty,
                 'max_new_tokens': max_new_tokens,
                 'num_beams': self.generating_args.num_beams,
                 'do_sample': self.generating_args.do_sample,
@@ -100,15 +100,13 @@ class Predictor(BaseModels):
                         submit_btn = gr.Button('Submit', variant='primary')
                 with gr.Column(scale=1):
                     empty_btn = gr.Button('Clear History')
-                    max_new_tokens = gr.Slider(0, 4096, value=self.generating_args.max_new_tokens, step=1.0,
-                                               label='Maximum new tokens', interactive=True)
-                    top_p = gr.Slider(0, 1, value=self.generating_args.top_p, step=0.01,
-                                      label='Top P', interactive=True)
-                    temperature = gr.Slider(0, 1.5, value=self.generating_args.temperature, step=0.01,
-                                            label='Temperature', interactive=True)
+                    max_new_tokens = gr.Slider(0, 4096, value=self.generating_args.max_new_tokens, step=1.0, label='Maximum new tokens', interactive=True)
+                    top_p = gr.Slider(0, 1, value=self.generating_args.top_p, step=0.01, label='Top P', interactive=True)
+                    repetition_penalty = gr.Slider(0, 10, value=self.generating_args.repetition_penalty, step=0.01, label='repetition_penalty', interactive=True)
+                    temperature = gr.Slider(0, 1.5, value=self.generating_args.temperature, step=0.01, label='Temperature', interactive=True)
             # (message, bot_message)
             history = gr.State([])
-            submit_btn.click(predict, [user_input, chatbot, history, max_new_tokens, top_p, temperature],
+            submit_btn.click(predict, [user_input, chatbot, history, max_new_tokens, top_p, repetition_penalty, temperature],
                              [chatbot, history], show_progress=True)
             submit_btn.click(reset_user_input, [], [user_input])
             empty_btn.click(reset_state, outputs=[chatbot, history], show_progress=True)
