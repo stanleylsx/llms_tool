@@ -16,3 +16,4 @@ tqdm==4.65.0
 loguru==0.7.0
 trl==0.6.0
 tiktoken==0.4.0
+xformers==0.0.21
