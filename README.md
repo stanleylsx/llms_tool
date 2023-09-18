@@ -50,6 +50,7 @@ Aquila   | 7B           |[aquila](https://huggingface.co/BAAI)
 InternLM | 7B           |[internlm](https://huggingface.co/internlm)
 MOSS     | 16B          |[MOSS](https://huggingface.co/fnlp)
 XVERSE   | 13B          |[XVERSE](https://huggingface.co/xverse/XVERSE-13B-Chat)
+Tigerbot | 7B、13B      |[Tigerbot](https://huggingface.co/TigerResearch)
 
 * 使用RWKV时候需要使用本项目的[convert_rwkv_to_hf](engines/utils/convert_rwkv_to_hf.py)或者transformers自带的[convert_rwkv_checkpoint_to_hf](https://github.com/huggingface/transformers/blob/main/src/transformers/models/rwkv/convert_rwkv_checkpoint_to_hf.py)将模型转成hf格式。
 * 未进入下表的模型或参数规模暂时没有使用该项目跑过。

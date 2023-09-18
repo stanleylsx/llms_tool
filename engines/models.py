@@ -69,6 +69,19 @@ class BaseModels:
     def use_ntk_to_expend_input_token_length(self, model):
         ntk_type = self.model_args.use_ntk
         max_input_token = self.data_manager.data_args.max_input_token
+        if isinstance(model, LlamaForCausalLM):
+            if max_input_token > (max_position_embeddings := getattr(model.config, 'max_position_embeddings', None)):
+                factor = math.ceil(max_input_token / max_position_embeddings)
+                match ntk_type:
+                    case 'dynamic':
+                        # https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L147
+                        model.config.rope_scaling = {'type': 'dynamic', 'factor': factor}
+                    case 'linear':
+                        # https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L128
+                        model.config.rope_scaling = {'type': 'linear', 'factor': factor}
+            else:
+                self.logger.warning('Current model support the length you set.')
+            return model
         match self.model_args.model_type:
             case 'chatglm':
                 if ntk_type == 'linear':
@@ -88,18 +101,6 @@ class BaseModels:
                     model.config.use_dynamic_ntk = True
                 else:
                     self.logger.warning('Native Qwen can not support linear NTK.')
-            case 'llama':
-                if max_input_token > (max_position_embeddings := getattr(model.config, 'max_position_embeddings', None)):
-                    factor = math.ceil(max_input_token / max_position_embeddings)
-                    match ntk_type:
-                        case 'dynamic':
-                            # https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L147
-                            model.config.rope_scaling = {'type': 'dynamic', 'factor': factor}
-                        case 'linear':
-                            # https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L128
-                            model.config.rope_scaling = {'type': 'linear', 'factor': factor}
-                else:
-                    self.logger.warning('Current model support the length you set.')
             case 'falcon':
                 if model.config.alibi:
                     # https://github.com/huggingface/transformers/blob/main/src/transformers/models/falcon/configuration_falcon.py#L181
@@ -160,6 +161,8 @@ class BaseModels:
             model = AutoModelForCausalLM.from_pretrained(model_to_load, trust_remote_code=True, **config_kwargs)
             if self.model_args.model_type == 'qwen':
                 model.generate = MethodType(PreTrainedModel.generate, model)
+        elif self.model_args.model_type == 'tigerbot':
+            model = AutoModelForCausalLM.from_pretrained(model_to_load, **config_kwargs)
         elif self.model_args.model_type == 'rwkv':
             model = RwkvForCausalLM.from_pretrained(model_to_load, **config_kwargs)
         elif self.model_args.model_type == 'llama':

@@ -195,6 +195,14 @@ class Template:
             self.prompt = 'Human: {query}\n\nAssistant: '
             self.sep = '\n\n'
             self.use_history = True
+        elif self.prompt_template == 'tigerbot':
+            r"""
+            Supports: https://huggingface.co/TigerResearch
+            """
+            self.prefix = ''
+            self.prompt = 'Instruction:\n{query}\n\n### Response:\n'
+            self.sep = '\n\n'
+            self.use_history = True
         else:
             raise ValueError('Template {} does not exist.'.format(self.prompt_template))
 
