@@ -203,6 +203,14 @@ class Template:
             self.prompt = 'Instruction:\n{query}\n\n### Response:\n'
             self.sep = '\n\n'
             self.use_history = True
+        elif self.prompt_template == 'flagalpha':
+            r"""
+            Supports: https://huggingface.co/FlagAlpha
+            """
+            self.prefix = ''
+            self.prompt = '<s>Human:{query}\n<\\s><s>Assistant: '
+            self.sep = '<\\s>'
+            self.use_history = True
         else:
             raise ValueError('Template {} does not exist.'.format(self.prompt_template))
 
