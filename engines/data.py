@@ -7,6 +7,7 @@
 from transformers import AutoTokenizer, LlamaTokenizer, BloomTokenizerFast
 from transformers import DataCollatorWithPadding
 from engines.utils.prompt_template import Template
+from engines.utils.logits_process import logits_processor
 from datasets import load_dataset
 from glob import glob
 import os
@@ -68,6 +69,7 @@ class DataManager:
             gen_kwargs['eos_token_id'] = eos_token_id
         elif self.model_args.model_type == 'falcon':
             gen_kwargs['pad_token_id'] = self.tokenizer.eos_token_id
+        gen_kwargs['logits_processor'] = logits_processor()
         return gen_kwargs
 
     def load_datasets_from_files(self, test=False):
