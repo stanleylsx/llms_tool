@@ -8,6 +8,7 @@ from transformers import AutoTokenizer, LlamaTokenizer, BloomTokenizerFast
 from transformers import DataCollatorWithPadding
 from engines.utils.prompt_template import Template
 from engines.utils.logits_process import logits_processor
+from engines.utils.stopping_criteria import add_stopping_criteria
 from datasets import load_dataset
 from glob import glob
 import os
@@ -58,15 +59,17 @@ class DataManager:
 
     def generating_args_preprocess(self, gen_kwargs):
         if self.model_args.model_type == 'aquila':
-            self.tokenizer.add_special_tokens({'eos_token': '###'})
-            eos_token_id = [8090, 100007]
-            gen_kwargs['eos_token_id'] = eos_token_id
+            stop_token_ids = [8090, 100007]
+            # gen_kwargs['eos_token_id'] = stop_token_ids
+            gen_kwargs['stopping_criteria'] = add_stopping_criteria(stop_token_ids)
         elif self.model_args.model_type == 'internlm':
-            eos_token_id = [2, 103028]
-            gen_kwargs['eos_token_id'] = eos_token_id
+            stop_token_ids = [2, 103028]
+            # gen_kwargs['eos_token_id'] = stop_token_ids
+            gen_kwargs['stopping_criteria'] = add_stopping_criteria(stop_token_ids)
         elif self.model_args.model_type == 'qwen':
-            eos_token_id = [151643, 151645]
-            gen_kwargs['eos_token_id'] = eos_token_id
+            stop_token_ids = [151643, 151645]
+            # gen_kwargs['eos_token_id'] = stop_token_ids
+            gen_kwargs['stopping_criteria'] = add_stopping_criteria(stop_token_ids)
         elif self.model_args.model_type == 'falcon':
             gen_kwargs['pad_token_id'] = self.tokenizer.eos_token_id
         gen_kwargs['logits_processor'] = logits_processor()
