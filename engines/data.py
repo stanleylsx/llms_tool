@@ -58,13 +58,14 @@ class DataManager:
     def generating_args_preprocess(self, gen_kwargs):
         if self.model_args.model_type == 'aquila':
             self.tokenizer.add_special_tokens({'eos_token': '###'})
-            eos_token_id = (8090, 100007)
+            eos_token_id = [8090, 100007]
             gen_kwargs['eos_token_id'] = eos_token_id
         elif self.model_args.model_type == 'internlm':
-            eos_token_id = (2, 103028)
+            eos_token_id = [2, 103028]
             gen_kwargs['eos_token_id'] = eos_token_id
         elif self.model_args.model_type == 'qwen':
-            gen_kwargs['eos_token_id'] = 151645
+            eos_token_id = [151643, 151645]
+            gen_kwargs['eos_token_id'] = eos_token_id
         elif self.model_args.model_type == 'falcon':
             gen_kwargs['pad_token_id'] = self.tokenizer.eos_token_id
         return gen_kwargs
