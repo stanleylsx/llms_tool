@@ -52,7 +52,8 @@ MOSS     | 16B          |[MOSS](https://huggingface.co/fnlp)
 XVERSE   | 13B          |[XVERSE](https://huggingface.co/xverse/XVERSE-13B-Chat)
 Tigerbot | 7B、13B      |[Tigerbot](https://huggingface.co/TigerResearch)
 
-* 未进入下表的模型或参数规模暂时没有使用该项目跑过。
+* 未进入上表的模型或参数规模暂时没有使用该项目测试过。
+* Tigerbot只支持基于LLama2的版本。
 
 ### Training methods  
 
