@@ -1,5 +1,25 @@
+from accelerate import infer_auto_device_map, dispatch_model
+from accelerate.utils import get_balanced_memory
+import torch
 
-def auto_configure_device_map(num_gpus, model):
+
+def dispatch(model_type, model, dispatched):
+    if dispatched:
+        return model
+    if model_type == 'chatglm':
+        model.tie_weights()
+        device_map = infer_chatglm_device_map(model)
+    else:
+        kwargs = {'dtype': model.dtype, 'no_split_module_classes': model._no_split_modules}
+        max_memory = get_balanced_memory(model, **kwargs)
+        model.tie_weights()
+        device_map = infer_auto_device_map(model, max_memory=max_memory, **kwargs)
+    model = dispatch_model(model, device_map=device_map)
+    return model
+
+
+def infer_chatglm_device_map(model):
+    num_gpus = torch.cuda.device_count()
     # transformer.word_embeddings 占用1层
     # transformer.final_layernorm 和 lm_head 占用1层
     # transformer.layers 占用 28 层

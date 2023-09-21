@@ -9,8 +9,7 @@ from transformers import BitsAndBytesConfig
 from transformers import PreTrainedModel
 from transformers.generation.utils import GenerationConfig
 from trl import AutoModelForCausalLMWithValueHead
-from accelerate import infer_auto_device_map, dispatch_model
-from engines.utils.glm_multi_gpus import auto_configure_device_map
+from engines.utils.dispatch_to_multi_gpu import dispatch
 from engines.utils.print_parameters import summary
 from engines.utils.cpm_quantizer import QuantizedLinear
 from peft.utils import CONFIG_NAME, WEIGHTS_NAME
@@ -122,6 +121,7 @@ class BaseModels:
     def load_base_model(self):
         config_kwargs = {'cache_dir': self.model_args.cache_dir,
                          'torch_dtype': self.model_args.torch_dtype}
+        dispatched = False
         if self.model_args.quantization_bit is not None:
             if self.model_args.quantization == 'bnb':
                 if self.model_args.quantization_bit == 8:
@@ -147,6 +147,7 @@ class BaseModels:
         else:
             if not self.is_deepspeed_train and self.model_args.model_type != 'chatglm':
                 config_kwargs['device_map'] = 'auto'
+                dispatched = True
 
         if self.model_args.checkpoint_dir is not None and self.training_args.fine_tuning_type == 'full':
             model_to_load = self.model_args.checkpoint_dir
@@ -177,18 +178,9 @@ class BaseModels:
 
         if self.model_args.quantization_bit is not None and self.model_args.quantization == 'cpm':
             model = self.quantize(model, self.model_args.quantization_bit)
-            if not self.is_deepspeed_train:
-                model.tie_weights()
-                if self.model_args.model_type != 'chatglm':
-                    device_map = infer_auto_device_map(model)
-                else:
-                    device_map = auto_configure_device_map(torch.cuda.device_count(), model)
-                model = dispatch_model(model, device_map=device_map)
-        else:
-            if not self.is_deepspeed_train and self.model_args.model_type == 'chatglm':
-                model.tie_weights()
-                device_map = auto_configure_device_map(torch.cuda.device_count(), model)
-                model = dispatch_model(model, device_map=device_map)
+
+        if not self.is_deepspeed_train:
+            model = dispatch(self.model_args.model_type, model, dispatched)
 
         if os.path.exists(model_to_load + '/generation_config.json'):
             model.generation_config = GenerationConfig.from_pretrained(model_to_load)
