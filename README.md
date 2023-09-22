@@ -53,7 +53,29 @@ XVERSE   | 13B          |[XVERSE](https://huggingface.co/xverse/XVERSE-13B-Chat)
 Tigerbot | 7B、13B      |[Tigerbot](https://huggingface.co/TigerResearch)
 
 * 未进入上表的模型或参数规模暂时没有使用该项目测试过。
-* Tigerbot只支持基于LLama2的版本。
+
+### Template Prompt
+因为很多训练者都是基于上述的基座模型或者Chat模型继续训练，但是它们采用了不同的template prompt，所以下载相关的模型后，需要根据这些模型的要求新加入和它们相适配的template prompt，除了加载这些模型官方需要的template prompt外，本项目还给了一些template prompt，比如ziya、openbuddy等等的模板。  
+
+Template Prompt|Website
+:--------------|---------
+chatglm        | [chatglm2](https://huggingface.co/THUDM/chatglm2-6b)  
+alpaca         | [Chinese-LLaMA-Alpaca](https://github.com/ymcui/Chinese-LLaMA-Alpaca)
+vicuna         | [Chinese-Vicuna](https://github.com/Facico/Chinese-Vicuna)
+belle          | [BELLE](https://github.com/LianjiaTech/BELLE)
+ziya           | [Ziya](https://huggingface.co/IDEA-CCNL/Ziya-LLaMA-13B-v1)
+aquila         | [AquilaChat](https://huggingface.co/BAAI/AquilaChat-7B)
+firefly        | [Firefly](https://github.com/yangjianxin1/Firefly)
+openbuddy      | [OpenBuddy](https://huggingface.co/OpenBuddy)
+internlm       | [Internlm](https://huggingface.co/internlm)
+baichuan       | [Baichuan](https://huggingface.co/baichuan-inc/Baichuan-13B-Chat)
+baichuan2      | [Baichuan2](https://github.com/baichuan-inc/Baichuan2)
+qwen           | [Qwen](https://github.com/QwenLM/Qwen-7B)
+moss           | [MOSS](https://github.com/OpenLMLab/MOSS)
+linksoul       | [LinkSoul](https://huggingface.co/LinkSoul)
+xverse         | [XVERSE](https://huggingface.co/xverse/XVERSE-13B-Chat)
+tigerbot       | [TigerBot](https://github.com/TigerResearch/TigerBot)
+flagalpha      | [FlagAlpha](https://github.com/FlagAlpha/Llama2-Chinese)
 
 ### Training methods  
 

@@ -39,8 +39,6 @@ class DataManager:
             tokenizer = AutoTokenizer.from_pretrained(model_path)
         elif self.model_args.model_type == 'bloom':
             tokenizer = BloomTokenizerFast.from_pretrained(model_path)
-        elif self.model_args.model_type == 'tigerbot':
-            tokenizer = AutoTokenizer.from_pretrained(model_path, padding_side=self.model_args.padding_side)
         elif self.model_args.model_type == 'llama':
             tokenizer = LlamaTokenizer.from_pretrained(model_path, use_fast=self.model_args.use_fast_tokenizer,
                                                        padding_side=self.model_args.padding_side)

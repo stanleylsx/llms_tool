@@ -162,8 +162,6 @@ class BaseModels:
             model = AutoModelForCausalLM.from_pretrained(model_to_load, trust_remote_code=True, **config_kwargs)
             if self.model_args.model_type == 'qwen':
                 model.generate = MethodType(PreTrainedModel.generate, model)
-        elif self.model_args.model_type == 'tigerbot':
-            model = AutoModelForCausalLM.from_pretrained(model_to_load, **config_kwargs)
         elif self.model_args.model_type == 'rwkv':
             model = RwkvForCausalLM.from_pretrained(model_to_load, **config_kwargs)
         elif self.model_args.model_type == 'llama':

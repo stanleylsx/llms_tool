@@ -29,7 +29,7 @@ class ModelArguments:
             # 模型类型
             'help': 'Model type.',
             'choices': ['chatglm', 'qwen', 'llama', 'falcon', 'baichuan', 'aquila',
-                        'internlm', 'moss', 'bloom', 'rwkv', 'xverse', 'tigerbot'],
+                        'internlm', 'moss', 'bloom', 'rwkv', 'xverse'],
         }
     )
     model_path: str = field(
@@ -189,7 +189,7 @@ class DataTrainingArguments:
         metadata={
             # 选择对应模型的模板prompt，一般Chat模型的出品方都会有一个固定的prompt，这部分很重要，预测训练阶段都需要根据chat模型的要求修改
             'help': 'Which template to use for constructing prompts in training and inference.',
-            'choices': ['default', 'vanilla', 'alpaca', 'vicuna', 'belle', 'linly', 'billa', 'ziya', 'aquila',
+            'choices': ['default', 'alpaca', 'vicuna', 'belle', 'linly', 'billa', 'ziya', 'aquila',
                         'firefly', 'openbuddy', 'internlm', 'baichuan', 'baichuan2', 'chatglm', 'qwen', 'moss',
                         'linksoul', 'xverse', 'tigerbot', 'flagalpha']
         }
@@ -495,7 +495,6 @@ class TrainingArguments(Seq2SeqTrainingArguments):
             Aquila choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"] \
             Baichuan choices: [\"W_pack\", \"o_proj\", \"gate_proj\", \"up_proj\", \"down_proj\"] \
             Qwen choices: [\"c_attn\", \"c_proj\", \"w1\", \"w2\"] \
-            Tigerbot choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"],\
             Xverse choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"]"
         }
     )
