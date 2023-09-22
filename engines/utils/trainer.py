@@ -1,6 +1,6 @@
 from transformers import Seq2SeqTrainer, Trainer
 from transformers.modeling_utils import unwrap_model
-from trl import PPOTrainer
+from trl import PPOTrainer, DPOTrainer
 from trl.core import PPODecorators, logprobs_from_logits
 from typing import Optional, List
 import torch
@@ -210,3 +210,15 @@ class MyPPOTrainer(PPOTrainer):
 
         self.tokenizer.padding_side = padding_side_default
         return outputs
+
+
+class MyDPOTrainer(DPOTrainer):
+    def __init__(self, is_deepspeed_train, ref_model=None, **kwargs):
+        super().__init__(ref_model=ref_model, **kwargs)
+        self.ref_model = ref_model
+        if ref_model:
+            if is_deepspeed_train:
+                self.ref_model = self.accelerator._prepare_deepspeed(self.ref_model)
+                self.ref_model.eval()
+            else:
+                self.ref_model = self.accelerator.prepare_model(self.ref_model, evaluation_mode=True)

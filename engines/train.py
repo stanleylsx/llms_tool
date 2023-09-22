@@ -8,13 +8,13 @@ from engines.models import BaseModels
 from engines.utils.print_parameters import print_trainable_parameters
 from engines.utils.metrics import Metrics
 from engines.data import DataCollatorForRewardModelTraining
-from engines.utils.trainer import SFTTrainer, RewardTrainer, MyPPOTrainer
+from engines.utils.trainer import SFTTrainer, RewardTrainer, MyPPOTrainer, MyDPOTrainer
 from peft import LoraConfig, AdaLoraConfig, PromptTuningConfig, PromptEncoderConfig, PrefixTuningConfig
 from peft import TaskType, get_peft_model
 from copy import deepcopy
 from transformers import DataCollatorForSeq2Seq
 from config import TrainingArguments
-from trl import AutoModelForCausalLMWithValueHead, PPOConfig, set_seed, DPOTrainer
+from trl import AutoModelForCausalLMWithValueHead, PPOConfig, set_seed
 from tqdm import tqdm
 import torch
 import math
@@ -363,7 +363,7 @@ class Train(BaseModels):
         self.logger.info(f'Load base model from {self.model_args.model_path}')
         model = self.load_base_model()
         model = self.load_adapter(model, adapter_dir=self.model_args.checkpoint_dir)
-        ref_model = deepcopy(model).eval()
+        ref_model = deepcopy(model)
         model = self.construct_base_model(model)
         self.set_train_environment(model)
         self.logger.info(f'Model struct:\n{model}')
@@ -371,9 +371,10 @@ class Train(BaseModels):
         training_args = self.training_args.to_dict()
         training_args |= {'remove_unused_columns': False}
         training_args = TrainingArguments(**training_args)
-        dpo_trainer = DPOTrainer(
-            model=model,
+        dpo_trainer = MyDPOTrainer(
+            is_deepspeed_train=self.is_deepspeed_train,
             ref_model=ref_model,
+            model=model,
             beta=0.1,
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
