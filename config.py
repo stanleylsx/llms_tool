@@ -191,7 +191,7 @@ class DataTrainingArguments:
             'help': 'Which template to use for constructing prompts in training and inference.',
             'choices': ['default', 'vanilla', 'alpaca', 'vicuna', 'belle', 'linly', 'billa', 'ziya', 'aquila',
                         'firefly', 'openbuddy', 'internlm', 'baichuan', 'baichuan2', 'chatglm', 'qwen', 'moss',
-                        'linksoul', 'xverse', 'tigerbot']
+                        'linksoul', 'xverse', 'tigerbot', 'flagalpha']
         }
     )
     overwrite_cache: Optional[bool] = field(
