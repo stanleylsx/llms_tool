@@ -380,6 +380,8 @@ cpm_quantization_target: Optional[str] = field(
 - [x] 支持Deepspeed训练
 - [x] [NTK-Aware Scaled RoPE](https://kexue.fm/archives/9706)集成
 - [x] 多轮对话的[Firefly的loss](https://mp.weixin.qq.com/s/nhogoWnzl3nrs_77r38_UA)函数集成
+- [ ] 支持LLM增量预训练
+- [ ] 对LLama和Falcon增加Flash Attention2
 - [ ] mmlu、cmmlu和C-Eval自动化评估
 
 
