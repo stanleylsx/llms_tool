@@ -18,3 +18,4 @@ trl==0.6.0
 tiktoken==0.4.0
 xformers==0.0.21
 cpm-kernels==1.0.11
+flash-attn==2.2.5
