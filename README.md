@@ -169,6 +169,7 @@ Falcon系列     | Rope           |Dynamic、Linear |
 * 其他的模型需要自己更改原始的模型文件去支持NTK方法，比如可用于Alibi编码的模型Baichuan、Falcon、Bloom系列的[NTK-ALibi](https://github.com/keezen/ntk_alibi)。一般来说，NTK主要用在推断的时候突破模型的输入token限制，但是训练的时候打开NTK可能会得不到想要的效果。
 * Falcon系列的模型HF官方提供了两种编码方式，分别是Rope和Alibi，但是tiiuae官方目前只有Alibi的实现，不知道此举为何，所以此处仅支持使用Rope编码方式的NTK方法。
 
+
 ### Pretrain
 
 #### 训练数据
@@ -246,43 +247,7 @@ validation_file_dir: Optional[str] = field(
 训练的时候，需要在config.py中将mode修改为sft_train，然后运行main.py。  
 
 #### 训练配置
-需要在config.py中对应修改mode为sft_train，然后在TrainingArguments中配置好各项训练参数，然后运行main.py。常用的一些参数如下：
-
-Arguments                    | Describe                | 
-:----------------------------|-------------------------|
-fine_tuning_type             | 训练方式                  |
-use_firefly_loss             | 使用Firefly loss训练模型   |
-output_dir                   | 训练结果输出的文件夹        |
-num_train_epochs             | 训练的轮次                 |
-gradient_accumulation_steps  | 梯度累积                   |
-per_device_train_batch_size  | 每个设备上的批大小           |
-learning_rate                | 学习率                    |
-fp16                         | 设置True为开混合精度运算     |
-
-
-* 需要使用deepspeed的时候，将配置文件的json路径，填写到TrainingArguments的deepspeed参数中。
-* Lora和其它adapter训练方式的配置参数也在TrainingArguments中，这里面要注意lora_target的设置要根据自己的模型结构来，配置中给了一些参考。
-* QLora只支持Lora和AdaLora两种方式，量化方式需要选择bnb，支持int4和int8两种量化。
-* Firefly Loss仅作用在SFT训练阶段且不支持ChatGLM6B等Prefix LM模型。
-
-```
-quantization: Optional[str] = field(
-    default='bnb',
-    metadata={
-        # 如果使用qlora只能选择bnb，两种量化方式区别不大。
-        'help': 'The specific model version to use (can be a branch name, tag name or commit id).',
-        'choices': ['cpm', 'bnb'],
-    }
-)
-quantization_bit: Optional[int] = field(
-    default=None,
-    metadata={
-        # 使用8bit量化还是4bit量化？
-        'help': 'The number of bits to quantize the model.',
-        'choices': [4, 8],
-    }
-)
-```
+需要在config.py中对应修改mode为sft_train，然后在TrainingArguments中配置好各项训练参数，然后运行main.py。
 
 ### RM training
 #### 训练数据
@@ -352,6 +317,45 @@ DPO方法对模型进行强化学习训练的数据和奖励模型的数据是�
 
 
 * 如果前面使用的是adapter在SFT模型上训练的模型，RLHF的时候项目会融合前面的adapter后创建新的adapter继续训练。
+
+### Training Arguments  
+常用的一些参数如下：
+
+Arguments                    | Describe                | 
+:----------------------------|-------------------------|
+fine_tuning_type             | 训练方式                  |
+use_firefly_loss             | 使用Firefly loss训练模型   |
+output_dir                   | 训练结果输出的文件夹        |
+num_train_epochs             | 训练的轮次                 |
+gradient_accumulation_steps  | 梯度累积                   |
+per_device_train_batch_size  | 每个设备上的批大小           |
+learning_rate                | 学习率                    |
+fp16                         | 设置True为开混合精度运算     |
+
+
+* 需要使用deepspeed的时候，将配置文件的json路径，填写到TrainingArguments的deepspeed参数中。
+* Lora和其它adapter训练方式的配置参数也在TrainingArguments中，这里面要注意lora_target的设置要根据自己的模型结构来，配置中给了一些参考。
+* QLora只支持Lora和AdaLora两种方式，量化方式需要选择bnb，支持int4和int8两种量化。
+* Firefly Loss仅作用在SFT训练阶段且不支持ChatGLM6B等Prefix LM模型。
+
+```
+quantization: Optional[str] = field(
+    default='bnb',
+    metadata={
+        # 如果使用qlora只能选择bnb，两种量化方式区别不大。
+        'help': 'The specific model version to use (can be a branch name, tag name or commit id).',
+        'choices': ['cpm', 'bnb'],
+    }
+)
+quantization_bit: Optional[int] = field(
+    default=None,
+    metadata={
+        # 使用8bit量化还是4bit量化？
+        'help': 'The number of bits to quantize the model.',
+        'choices': [4, 8],
+    }
+)
+```
 
 ### DeepSpeed
 使用deepspeed进行训练需要在TrainingArguments指定deepspeed的config文件(项目中提供了stage2的deepspeed配置)：
