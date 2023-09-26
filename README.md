@@ -191,7 +191,7 @@ validation_file_dir: Optional[str] = field(
     }
 )
 ```
-
+训练的时候，需要在config.py中将mode修改为pretrain，然后运行main.py。
 
 ### SFT training
 
@@ -243,7 +243,7 @@ validation_file_dir: Optional[str] = field(
 )
 ```
 
-训练的时候，需要在config.py中将mode修改为pretrain，然后运行main.py。  
+训练的时候，需要在config.py中将mode修改为sft_train，然后运行main.py。  
 
 #### 训练配置
 需要在config.py中对应修改mode为sft_train，然后在TrainingArguments中配置好各项训练参数，然后运行main.py。常用的一些参数如下：
