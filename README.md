@@ -91,7 +91,25 @@ Prompt Tuning | ✅     |
 P Tuning      | ✅     |
 Prefix Tuning | ✅     |
 
-* 使用Lora和AdaLora都支持QLora训练，但是量化方式需要选择基于bitsandbytes的bnb量化方式，可支持4bit和8bit量化训练，因为Peft在0.4.0版本后集成了该量化方式的模型加载，可以直接量化后训练。
+* 使用Lora和AdaLora都支持QLora训练，但是量化方式需要选择基于bitsandbytes的bnb量化方式，可支持4bit和8bit量化训练。以下是开启Qlora训练的是必要配置参数（ModelArguments中）：
+```
+quantization: Optional[str] = field(
+    default='bnb',
+    metadata={
+        # 如果使用qlora只能选择bnb，两种量化方式区别不大。
+        'help': 'The specific model version to use (can be a branch name, tag name or commit id).',
+        'choices': ['cpm', 'bnb'],
+    }
+)
+quantization_bit: Optional[int] = field(
+    default=None,
+    metadata={
+        # 使用8bit量化还是4bit量化？
+        'help': 'The number of bits to quantize the model.',
+        'choices': [4, 8],
+    }
+)
+```
 
 ### Quantization
 
@@ -158,7 +176,8 @@ terminal_inference| Trminal        |
 * 预测的时候，模型会优先从你定义的ModelArguments中的checkpoint_dir读取，如果该文件下没有参数文件，则从TrainingArguments的output_dir文件夹加载，如果都没有则只加载最初的基座模型。
 
 #### NTK
-目前原生的config就能支持NTK方法的有[chatglm2-6b-32k](https://huggingface.co/THUDM/chatglm2-6b-32k)、LLama系列、Falcon系列和[Qwen-7B-Chat](https://huggingface.co/Qwen/Qwen-7B-Chat)：
+目前原生的config就能支持NTK方法的有[chatglm2-6b-32k](https://huggingface.co/THUDM/chatglm2-6b-32k)、LLama系列、Falcon系列和[Qwen-7B-Chat](https://huggingface.co/Qwen/Qwen-7B-Chat)：  
+
 Model          |Position Encoder|Support NTK Type| 
 :--------------|----------------|----------------|
 chatglm2-6b-32k| Rope           |  Linear        |
@@ -169,13 +188,10 @@ Falcon系列     | Rope           |Dynamic、Linear |
 * 其他的模型需要自己更改原始的模型文件去支持NTK方法，比如可用于Alibi编码的模型Baichuan、Falcon、Bloom系列的[NTK-ALibi](https://github.com/keezen/ntk_alibi)。一般来说，NTK主要用在推断的时候突破模型的输入token限制，但是训练的时候打开NTK可能会得不到想要的效果。
 * Falcon系列的模型HF官方提供了两种编码方式，分别是Rope和Alibi，但是tiiuae官方目前只有Alibi的实现，不知道此举为何，所以此处仅支持使用Rope编码方式的NTK方法。
 
+## Train
 
 ### Pretrain
-
-#### 训练数据
-预训练数据参考datasets/pretrain/example/train下面的文件，数据为txt格式存储，制作数据集最好能够向例子给的一样，一行为一句话，但是最好不大于模型接收的最大token长度。
-
-使用的时候把数据路径填写到DataTrainingArguments配置里面：
+预训练数据参考datasets/pretrain/example/train下面的文件，数据为txt格式存储，制作数据集最好能够向例子给的一样，一行为一句话，但是最好不大于模型接收的最大token长度。然后把数据路径填写到DataTrainingArguments配置里面：
 ```
 train_file_dir: Optional[str] = field(
     default='datasets/pretrain/example/train',
@@ -192,7 +208,7 @@ validation_file_dir: Optional[str] = field(
     }
 )
 ```
-训练的时候，需要在config.py中将mode修改为pretrain，然后运行main.py。
+开启训练的时候，需要在config.py中将mode修改为**pretrain**，然后运行main.py。
 
 ### SFT training
 
@@ -236,7 +252,7 @@ train_file_dir: Optional[str] = field(
     }
 )
 validation_file_dir: Optional[str] = field(
-    default='datasets/finetune/example/test',
+    default='datasets/finetune/example/eval',
     metadata={
         # 验证集保存的路径。
         'help': 'The evaluation json file folder.'
@@ -244,23 +260,8 @@ validation_file_dir: Optional[str] = field(
 )
 ```
 
-训练的时候，需要在config.py中将mode修改为sft_train，然后运行main.py。  
-
-#### 训练配置
-需要在config.py中对应修改mode为sft_train，然后在TrainingArguments中配置好各项训练参数，然后运行main.py。
-
-### RM training
-#### 训练数据
-指令微调数据参考datasets/rm/example/train下面的文件，数据由instruction、input、output三个字段组成。output是一个两元素列表，第一个元素是采纳的答案，第二个是拒绝的答案。  
-使用的时候把训练奖励模型的数据SFT里面一样填写到DataTrainingArguments配置里面。
-
-#### 训练配置
-需要在config.py中对应修改mode为rm_train，然后在TrainingArguments中配置好各项训练参数，然后运行main.py。常用的参数和SFT一样，参加上面的SFT训练配置内容。
-
-* 奖励模型训练不支持第一代ChatGLM6B，因为项目用trl的AutoModelForCausalLMWithValueHead组件是基于CausalLM模型的。ChatGLM6B是基于Prefix LM实现的。
-
-### Test
-修改DataTrainingArguments中的test_file为测试数据集所在的路径。  
+开启训练的时候，需要在config.py中对应修改mode为**sft_train**，然后在TrainingArguments中配置好各项训练参数，然后运行main.py。
+框架支持测试SFT训练的效果，测试前在DataTrainingArguments中配置test_file为测试数据集所在的路径，然后在config.py中将mode修改为**sft_batch_test**，然后运行main.py。  
 ```
 test_file: Optional[str] = field(
     default='datasets/finetune/test',
@@ -271,8 +272,28 @@ test_file: Optional[str] = field(
 )
 ```
 
-如果跑指令微调的测试，需要在config.py中将mode修改为sft_batch_test，然后运行main.py。  
-如果跑奖励模型的批量测试，需要在config.py中将mode修改为rm_batch_test，然后运行main.py，奖励模型测试只会输出模型的准确率。
+### RM training
+奖励模型训练数据参考datasets/rm/example/train下面的文件，数据由instruction、input、output三个字段组成。output是一个两元素列表，第一个元素是采纳的答案，第二个是拒绝的答案。使用的时候把训练奖励模型的数据一样填写到DataTrainingArguments配置里面。然后需要在config.py中对应修改mode为**rm_train**，在TrainingArguments中配置好各项训练参数，运行main.py。
+```
+train_file_dir: Optional[str] = field(
+    default='datasets/rm/example/train',
+    metadata={
+        # 训练集保存的路径。
+        'help': 'The train json data file folder.'
+    }
+)
+validation_file_dir: Optional[str] = field(
+    default='datasets/rm/example/eval',
+    metadata={
+        # 验证集保存的路径。
+        'help': 'The evaluation json file folder.'
+    }
+)
+```
+
+框架支持测试奖励模型训练的效果，首先需要在DataTrainingArguments中配置test_file为测试数据集所在的路径，然后在config.py中将mode修改为**rm_batch_test**，运行main.py，奖励模型测试只会输出模型的准确率。
+
+* 奖励模型训练不支持第一代ChatGLM6B，因为项目用trl的AutoModelForCausalLMWithValueHead组件是基于CausalLM模型的。ChatGLM6B是基于Prefix LM实现的。
 
 ### RLHF training
 #### PPO
@@ -293,7 +314,7 @@ reward_model_checkpoint: str = field(
     }
 )
 ```  
-PPO方法对模型进行强化学习训练的数据和SFT的数据是一致的，此外使用的时候还需要在TrainingArguments中把PPO的配置填写好，在config.py中将mode修改为ppo_train，然后运行main.py。训练的结果将会通过wandb的格式记录在训练输出的文件夹中。
+PPO方法对模型进行强化学习训练的数据和SFT阶段训练的数据的格式是一致的，此外使用的时候还需要在TrainingArguments中把PPO的配置填写好，在config.py中将mode修改为ppo_train，然后运行main.py。训练的结果将会通过wandb的格式记录在训练输出的文件夹中。
 
 #### DPO
 在进行基于DPO模型的RLHF训练之前，只需要一个被RLHF微调的SFT模型，如果是基于adapter的模型还需要把adapter配置到ModelArguments中如下：
@@ -315,7 +336,6 @@ checkpoint_dir: Optional[str] = field(
 ```  
 DPO方法对模型进行强化学习训练的数据和奖励模型的数据是一致的，在config.py中将mode修改为dpo_train，然后运行main.py。训练的结果将会通过wandb的格式记录在训练输出的文件夹中。
 
-
 * 如果前面使用的是adapter在SFT模型上训练的模型，RLHF的时候项目会融合前面的adapter后创建新的adapter继续训练。
 
 ### Training Arguments  
@@ -335,27 +355,7 @@ fp16                         | 设置True为开混合精度运算     |
 
 * 需要使用deepspeed的时候，将配置文件的json路径，填写到TrainingArguments的deepspeed参数中。
 * Lora和其它adapter训练方式的配置参数也在TrainingArguments中，这里面要注意lora_target的设置要根据自己的模型结构来，配置中给了一些参考。
-* QLora只支持Lora和AdaLora两种方式，量化方式需要选择bnb，支持int4和int8两种量化。
 * Firefly Loss仅作用在SFT训练阶段且不支持ChatGLM6B等Prefix LM模型。
-
-```
-quantization: Optional[str] = field(
-    default='bnb',
-    metadata={
-        # 如果使用qlora只能选择bnb，两种量化方式区别不大。
-        'help': 'The specific model version to use (can be a branch name, tag name or commit id).',
-        'choices': ['cpm', 'bnb'],
-    }
-)
-quantization_bit: Optional[int] = field(
-    default=None,
-    metadata={
-        # 使用8bit量化还是4bit量化？
-        'help': 'The number of bits to quantize the model.',
-        'choices': [4, 8],
-    }
-)
-```
 
 ### DeepSpeed
 使用deepspeed进行训练需要在TrainingArguments指定deepspeed的config文件(项目中提供了stage2的deepspeed配置)：
