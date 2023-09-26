@@ -14,14 +14,14 @@
 ## Updates
 Date| Detail
 :---|---
-2023-07-25|初始仓库
-2023-08-08|奖励模型训练
-2023-08-21|RLHF的PPO方法对各个模型的训练支持
-2023-08-23|RLHF的DPO方法对各个模型的训练支持
-2023-08-24|支持deepspeed-ZeRo2分布式训练
-2023-09-04|支持部分可以从配置修改使用NTK的模型
-2023-09-11|多轮对话的[Firefly的loss](https://mp.weixin.qq.com/s/nhogoWnzl3nrs_77r38_UA)训练函数集成
 2023-09-26|支持模型预训练
+2023-09-11|多轮对话的[Firefly的loss](https://mp.weixin.qq.com/s/nhogoWnzl3nrs_77r38_UA)训练函数集成
+2023-09-04|支持部分可以从配置修改使用NTK的模型
+2023-08-24|支持deepspeed-ZeRo2分布式训练
+2023-08-23|RLHF的DPO方法对各个模型的训练支持
+2023-08-21|RLHF的PPO方法对各个模型的训练支持
+2023-08-08|奖励模型训练
+2023-07-25|初始仓库
 
 ## Requirement
 几个重要环境：
@@ -405,7 +405,7 @@ cpm_quantization_target: Optional[str] = field(
 - [x] PPO模型训练
 - [x] DPO模型训练
 - [x] 支持Deepspeed训练
-- [x] [NTK-Aware Scaled RoPE](https://kexue.fm/archives/9706)集成
+- [x] [NTK-Aware Scaled RoPE](https://www.reddit.com/r/LocalLLaMA/comments/14lz7j5/ntkaware_scaled_rope_allows_llama_models_to_have/?rdt=35901)集成
 - [x] 多轮对话的[Firefly的loss](https://mp.weixin.qq.com/s/nhogoWnzl3nrs_77r38_UA)函数集成
 - [x] 支持LLM增量预训练
 - [ ] 对LLama和Falcon增加Flash Attention2
