@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass, field
 from transformers import Seq2SeqTrainingArguments
 import torch
 
-# （待完成）预训练：          pretrain
+# 预训练：                   pretrain
 # 模型指令微调：              sft_train
 # 奖励模型训练：              rm_train
 # PPO模型强化训练：           ppo_train
@@ -78,7 +78,7 @@ class ModelArguments:
         }
     )
     use_flash_attn: Optional[bool] = field(
-        default=True,
+        default=False,
         metadata={
             # 是否使用Flash Attention。
             # Huggingface官方支持了LLama和Falcon的Flash Attention，它将根据你安装的版本进行调用flash attention或者flash attention2。

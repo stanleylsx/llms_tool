@@ -21,6 +21,7 @@ Date| Detail
 2023-08-24|支持deepspeed-ZeRo2分布式训练
 2023-09-04|支持部分可以从配置修改使用NTK的模型
 2023-09-11|多轮对话的[Firefly的loss](https://mp.weixin.qq.com/s/nhogoWnzl3nrs_77r38_UA)训练函数集成
+2023-09-26|支持模型预训练
 
 ## Requirement
 几个重要环境：
@@ -28,7 +29,8 @@ Date| Detail
 * torch：2.0.1+  
 * bitsandbytes：不同操作系统下需要对应安装不同的包（Linux下0.39.0+，Windows下要专门下载对应的wheel本地安装）
 
-其它环境见requirements.txt
+其它环境见requirements.txt  
+目前FlashAttention作者未主动兼容和测试Windows操作环境[issues](https://github.com/Dao-AILab/flash-attention/issues/565)，若在Windows上不用安装flash-attn这个包。
 
 ## Feature
 
@@ -167,9 +169,32 @@ Falcon系列     | Rope           |Dynamic、Linear |
 * 其他的模型需要自己更改原始的模型文件去支持NTK方法，比如可用于Alibi编码的模型Baichuan、Falcon、Bloom系列的[NTK-ALibi](https://github.com/keezen/ntk_alibi)。一般来说，NTK主要用在推断的时候突破模型的输入token限制，但是训练的时候打开NTK可能会得不到想要的效果。
 * Falcon系列的模型HF官方提供了两种编码方式，分别是Rope和Alibi，但是tiiuae官方目前只有Alibi的实现，不知道此举为何，所以此处仅支持使用Rope编码方式的NTK方法。
 
-### SFT training
+### Pretrain
 
 #### 训练数据
+预训练数据参考datasets/pretrain/example/train下面的文件，数据为txt格式存储，制作数据集最好能够向例子给的一样，一行为一句话，但是最好不大于模型接收的最大token长度。
+
+使用的时候把数据路径填写到DataTrainingArguments配置里面：
+```
+train_file_dir: Optional[str] = field(
+    default='datasets/pretrain/example/train',
+    metadata={
+        # 训练集保存的路径。
+        'help': 'The train json data file folder.'
+    }
+)
+validation_file_dir: Optional[str] = field(
+    default='datasets/pretrain/example/train',
+    metadata={
+        # 验证集保存的路径。
+        'help': 'The evaluation json file folder.'
+    }
+)
+```
+
+
+### SFT training
+
 指令微调数据参考datasets/finetune/example/train下面的文件，数据由instruction、input、output和history四个字段组成。
 ```
 [
@@ -203,20 +228,22 @@ Falcon系列     | Rope           |Dynamic、Linear |
 使用的时候把数据路径填写到DataTrainingArguments配置里面：
 ```
 train_file_dir: Optional[str] = field(
-    default='datasets/finetune/train',
+    default='datasets/finetune/example/train',
     metadata={
         # 训练集保存的路径。
         'help': 'The train json data file folder.'
     }
 )
 validation_file_dir: Optional[str] = field(
-    default='datasets/finetune/test',
+    default='datasets/finetune/example/test',
     metadata={
         # 验证集保存的路径。
         'help': 'The evaluation json file folder.'
     }
 )
 ```
+
+训练的时候，需要在config.py中将mode修改为pretrain，然后运行main.py。  
 
 #### 训练配置
 需要在config.py中对应修改mode为sft_train，然后在TrainingArguments中配置好各项训练参数，然后运行main.py。常用的一些参数如下：
@@ -380,7 +407,7 @@ cpm_quantization_target: Optional[str] = field(
 - [x] 支持Deepspeed训练
 - [x] [NTK-Aware Scaled RoPE](https://kexue.fm/archives/9706)集成
 - [x] 多轮对话的[Firefly的loss](https://mp.weixin.qq.com/s/nhogoWnzl3nrs_77r38_UA)函数集成
-- [ ] 支持LLM增量预训练
+- [x] 支持LLM增量预训练
 - [ ] 对LLama和Falcon增加Flash Attention2
 - [ ] mmlu、cmmlu和C-Eval自动化评估
 
