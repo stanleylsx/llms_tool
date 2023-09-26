@@ -22,7 +22,8 @@ if __name__ == '__main__':
     data_manager = DataManager(config, logger)
     if mode == 'pretrain':
         # 模型预训练
-        pass
+        train = Train(data_manager, config, logger)
+        train.pretrain()
     elif mode == 'sft_train':
         # 模型指令微调
         train = Train(data_manager, config, logger)

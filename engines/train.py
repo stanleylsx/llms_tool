@@ -12,7 +12,8 @@ from engines.utils.trainer import SFTTrainer, RewardTrainer, MyPPOTrainer, MyDPO
 from peft import LoraConfig, AdaLoraConfig, PromptTuningConfig, PromptEncoderConfig, PrefixTuningConfig
 from peft import TaskType, get_peft_model
 from copy import deepcopy
-from transformers import DataCollatorForSeq2Seq
+from transformers import DataCollatorForSeq2Seq, DataCollatorForLanguageModeling
+from transformers import Trainer
 from config import TrainingArguments
 from trl import AutoModelForCausalLMWithValueHead, PPOConfig, set_seed
 from tqdm import tqdm
@@ -140,6 +141,48 @@ class Train(BaseModels):
             # Keeps Trainer from trying its own DataParallelism when more than 1 gpu is available
             model.is_parallelizable = True
             model.model_parallel = True
+
+    def pretrain(self):
+        self.logger.info(f'Load base model from {self.model_args.model_path}')
+        model = self.load_base_model()
+        data_collator = DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=False)
+        model = self.construct_base_model(model)
+        self.set_train_environment(model)
+        self.logger.info(f'Model struct:\n{model}')
+        train_dataset, eval_dataset = self.data_manager.prepare_dataset()
+        trainer = Trainer(
+            model=model,
+            args=self.training_args,
+            train_dataset=train_dataset if self.training_args.do_train else None,
+            tokenizer=self.tokenizer,
+            data_collator=data_collator,
+        )
+        self.logger.info('*** Start training. ***')
+        checkpoint = None
+        if self.training_args.resume_from_checkpoint:
+            checkpoint = self.training_args.output_dir
+            self.logger.info(f'Resume checkpoint from {checkpoint}')
+        try:
+            trainer_result = trainer.train(resume_from_checkpoint=checkpoint)
+        except ValueError:
+            self.logger.warning(f"Can't find a valid checkpoint at {checkpoint}")
+            trainer_result = trainer.train()
+        metrics = trainer_result.metrics
+        self.logger.info(f'Training metrics: {metrics}')
+        trainer.log_metrics('train', metrics)
+        trainer.save_metrics('train', metrics)
+        self.logger.info(f'Saving model checkpoint to {self.training_args.output_dir}')
+        trainer.save_state()
+        trainer.save_model()
+
+        if self.training_args.do_eval and eval_dataset:
+            self.logger.info('*** Start evaluating. ***')
+            metrics = trainer.evaluate(eval_dataset=eval_dataset)
+            perplexity = math.exp(metrics['eval_loss'])
+            metrics['perplexity'] = perplexity
+            self.logger.info(f'Evaluating metrics: {metrics}')
+            trainer.log_metrics('eval', metrics)
+            trainer.save_metrics('eval', metrics)
 
     def supervised_fine_tuning(self, test=False):
         self.logger.info(f'Load base model from {self.model_args.model_path}')

@@ -9,6 +9,7 @@ from transformers import DataCollatorWithPadding
 from engines.utils.prompt_template import Template
 from engines.utils.logits_process import logits_processor
 from datasets import load_dataset
+from itertools import chain
 from glob import glob
 import os
 
@@ -31,8 +32,11 @@ class DataManager:
         self.use_firefly_loss = self.training_args.use_firefly_loss
 
     def load_tokenizer(self, model_path):
-        if self.model_args.model_type in ['chatglm', 'baichuan', 'internlm', 'aquila', 'moss', 'qwen', 'xverse']:
+        if self.model_args.model_type in ['chatglm', 'baichuan', 'internlm', 'aquila', 'moss', 'xverse']:
             tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+        elif self.model_args.model_type == 'qwen':
+            # https://github.com/QwenLM/Qwen/issues/24
+            tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True, allowed_special='all')
         elif self.model_args.model_type == 'falcon':
             tokenizer = AutoTokenizer.from_pretrained(model_path)
         elif self.model_args.model_type == 'rwkv':
@@ -71,38 +75,45 @@ class DataManager:
 
     def load_datasets_from_files(self, test=False):
         data_files = {}
+        kwargs = {}
         if not test:
             if self.data_args.train_file_dir is not None and os.path.exists(self.data_args.train_file_dir):
-                train_data_files = glob(
+                train_data_files = glob(f'{self.data_args.train_file_dir}/**/*.txt', recursive=True) + glob(
                     f'{self.data_args.train_file_dir}/**/*.json', recursive=True) + glob(
                     f'{self.data_args.train_file_dir}/**/*.jsonl', recursive=True)
                 self.logger.info(f"train files: {', '.join(train_data_files)}")
                 data_files['train'] = train_data_files
             if self.training_args.do_eval and self.data_args.validation_file_dir is not None \
                     and os.path.exists(self.data_args.validation_file_dir):
-                eval_data_files = glob(
+                eval_data_files = glob(f'{self.data_args.validation_file_dir}/**/*.txt', recursive=True) + glob(
                     f'{self.data_args.validation_file_dir}/**/*.json', recursive=True) + glob(
                     f'{self.data_args.validation_file_dir}/**/*.jsonl', recursive=True)
                 self.logger.info(f"eval files: {', '.join(eval_data_files)}")
                 data_files['validation'] = eval_data_files
+            extension = 'text' if data_files['train'][0].endswith('txt') else 'json'
+            if extension == 'text':
+                kwargs['keep_linebreaks'] = True
             raw_datasets = load_dataset(
-                'json',
+                extension,
                 data_files=data_files,
                 cache_dir=self.model_args.cache_dir,
+                **kwargs
             )
             if self.training_args.do_eval and 'validation' not in raw_datasets.keys() \
                     and self.data_args.dev_ratio > 0.0:
                 raw_datasets['validation'] = load_dataset(
-                    'json',
+                    extension,
                     data_files=data_files,
                     split=f'train[:{self.data_args.dev_ratio}%]',
                     cache_dir=self.model_args.cache_dir,
+                    **kwargs
                 )
                 raw_datasets['train'] = load_dataset(
-                    'json',
+                    extension,
                     data_files=data_files,
                     split=f'train[{self.data_args.dev_ratio}%:]',
                     cache_dir=self.model_args.cache_dir,
+                    **kwargs
                 )
         else:
             if self.data_args.test_file is not None and os.path.exists(self.data_args.test_file):
@@ -140,6 +151,30 @@ class DataManager:
             label[end_pointer] = self.label_pad_token_id
             end_pointer -= 1
         return label
+
+    def preprocess_pretrain_dataset(self, examples):
+        # refer from https://github.com/ymcui/Chinese-LLaMA-Alpaca-2/blob/main/scripts/training/run_clm_pt_with_peft.py#L491
+        tokenized_examples = self.tokenizer(examples['text'])
+        block_size = self.data_args.max_input_token
+        if block_size > self.tokenizer.model_max_length:
+            self.logger.warning(
+                f'The block_size passed ({block_size}) is larger than the maximum length for the model'
+                f'({self.tokenizer.model_max_length}). Using block_size={self.tokenizer.model_max_length}.'
+            )
+        block_size = min(block_size, self.tokenizer.model_max_length)
+
+        concatenated_examples = {k: list(chain(*tokenized_examples[k])) for k in tokenized_examples.keys()}
+        total_length = len(concatenated_examples[list(tokenized_examples.keys())[0]])
+        # We drop the small remainder, we could add padding if the model supported it instead of this drop, you can
+        # customize this part to your needs.
+        if total_length >= block_size:
+            total_length = (total_length // block_size) * block_size
+        # Split by chunks of max_len.
+        result = {
+            k: [t[i: i + block_size] for i in range(0, total_length, block_size)]
+            for k, t in concatenated_examples.items()
+        }
+        return result
 
     def preprocess_train_supervised_fine_tuning_dataset(self, examples):
         # ChatGLM1: https://huggingface.co/THUDM/chatglm-6b/blob/main/tokenization_chatglm.py#L323
@@ -289,7 +324,9 @@ class DataManager:
         if not test:
             raw_datasets = self.load_datasets_from_files()
             train_dataset = raw_datasets['train']
-            if self.mode == 'sft_train':
+            if self.mode == 'pretrain':
+                train_dataset = process_dataset(self.preprocess_pretrain_dataset, train_dataset)
+            elif self.mode == 'sft_train':
                 train_dataset = process_dataset(self.preprocess_train_supervised_fine_tuning_dataset, train_dataset)
             elif self.mode == 'rm_train':
                 train_dataset = process_dataset(self.preprocess_train_reward_model_dataset, train_dataset)
@@ -304,7 +341,9 @@ class DataManager:
                 if 'validation' not in raw_datasets.keys():
                     raise ValueError('do_eval requires a validation dataset')
                 eval_dataset = raw_datasets['validation']
-                if self.mode == 'sft_train':
+                if self.mode == 'pretrain':
+                    eval_dataset = process_dataset(self.preprocess_pretrain_dataset, eval_dataset, False)
+                elif self.mode == 'sft_train':
                     eval_dataset = process_dataset(self.preprocess_eval_supervised_fine_tuning_dataset, eval_dataset, False)
                 elif self.mode == 'rm_train':
                     eval_dataset = process_dataset(self.preprocess_train_reward_model_dataset, eval_dataset, False)
