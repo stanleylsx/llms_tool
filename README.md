@@ -118,13 +118,13 @@ quantization_bit: Optional[int] = field(
 ### Metric
 不同训练阶段跑测试集时会输出下面一些常规的生成模型评估结果，结果仅限参考，大模型的事实性评估目前没有更好的办法，都是各个模型出品方或评测机构在各维度上制作数据集做评测，相对比较主观。   
 
-Metric  |Supported| Training Stage|
-:-------|---------|---------------|
-Rouge-1 | ✅     |SFT Training    |
-Rouge-2 | ✅     |SFT Training    |
-Rouge-l | ✅     |SFT Training    |
-ppl     | ✅     |SFT Training    |
-accuracy| ✅     |PPO-RM Training |
+Metric  |Supported| Training Stage      |
+:-------|---------|---------------------|
+Rouge-1 | ✅     |SFT Training          |
+Rouge-2 | ✅     |SFT Training          |
+Rouge-l | ✅     |SFT Training          |
+ppl     | ✅     |Pretrain、SFT Training|
+accuracy| ✅     |PPO-RM Training       |
 
 ## Getting start
 开始之前，需要确定试验的模型，并把整个模型文件从huggingface上下载下来，完成两步：
@@ -353,7 +353,6 @@ learning_rate                | 学习率                    |
 fp16                         | 设置True为开混合精度运算     |
 
 
-* 需要使用deepspeed的时候，将配置文件的json路径，填写到TrainingArguments的deepspeed参数中。
 * Lora和其它adapter训练方式的配置参数也在TrainingArguments中，这里面要注意lora_target的设置要根据自己的模型结构来，配置中给了一些参考。
 * Firefly Loss仅作用在SFT训练阶段且不支持ChatGLM6B等Prefix LM模型。
 
@@ -393,16 +392,6 @@ quantized_or_merged_output_dir: Optional[str] = field(
 )
 ```
 * 使用bnb和cpm量化将会默认对除了输出层的所有线性层进行量化。
-
-```
-cpm_quantization_target: Optional[str] = field(
-    default='query_key_value',
-    metadata={
-        # 需要对这个模型里面的哪些线性层进行量化？
-        'help': "Name(s) of target modules to use cpm Quantize. Use comma to separate multiple modules.
-    }
-)
-```
 
 ## Todo
 - [x] 奖励模型训练
