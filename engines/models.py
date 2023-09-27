@@ -158,10 +158,18 @@ class BaseModels:
             model = AutoModel.from_pretrained(model_to_load, trust_remote_code=True, **config_kwargs)
         elif self.model_args.model_type == 'falcon':
             model = FalconForCausalLM.from_pretrained(model_to_load, **config_kwargs)
-        elif self.model_args.model_type in ['baichuan', 'aquila', 'internlm', 'moss', 'qwen', 'xverse']:
+        elif self.model_args.model_type in ['baichuan', 'aquila', 'internlm', 'moss', 'xverse']:
             model = AutoModelForCausalLM.from_pretrained(model_to_load, trust_remote_code=True, **config_kwargs)
-            if self.model_args.model_type == 'qwen':
-                model.generate = MethodType(PreTrainedModel.generate, model)
+        elif self.model_args.model_type == 'qwen':
+            match self.model_args.torch_dtype:
+                case torch.float16:
+                    config_kwargs['fp16'] = True
+                case torch.bfloat16:
+                    config_kwargs['bf16'] = True
+                case torch.float32:
+                    config_kwargs['fp32'] = True
+            model = AutoModelForCausalLM.from_pretrained(model_to_load, trust_remote_code=True, **config_kwargs)
+            model.generate = MethodType(PreTrainedModel.generate, model)
         elif self.model_args.model_type == 'rwkv':
             model = RwkvForCausalLM.from_pretrained(model_to_load, **config_kwargs)
         elif self.model_args.model_type == 'llama':
