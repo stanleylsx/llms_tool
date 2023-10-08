@@ -14,6 +14,7 @@
 ## Updates
 Date| Detail
 :---|---
+2023-10-08|LLama和Falcon两类模型支持Flash Attention2
 2023-09-26|支持模型预训练
 2023-09-11|多轮对话的[Firefly的loss](https://mp.weixin.qq.com/s/nhogoWnzl3nrs_77r38_UA)训练函数集成
 2023-09-04|支持部分可以从配置修改使用NTK的模型
@@ -400,7 +401,7 @@ quantized_or_merged_output_dir: Optional[str] = field(
 - [x] [NTK-Aware Scaled RoPE](https://www.reddit.com/r/LocalLLaMA/comments/14lz7j5/ntkaware_scaled_rope_allows_llama_models_to_have/?rdt=35901)集成
 - [x] 多轮对话的[Firefly的loss](https://mp.weixin.qq.com/s/nhogoWnzl3nrs_77r38_UA)函数集成
 - [x] 支持LLM增量预训练
-- [ ] 对LLama和Falcon增加Flash Attention2
+- [x] 对LLama和Falcon增加Flash Attention2
 - [ ] mmlu、cmmlu和C-Eval自动化评估
 
 

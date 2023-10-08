@@ -78,12 +78,11 @@ class ModelArguments:
         }
     )
     use_flash_attn: Optional[bool] = field(
-        default=False,
+        default=True,
         metadata={
             # 是否使用Flash Attention。
             # Huggingface官方支持了LLama和Falcon的Flash Attention，它将根据你安装的版本进行调用flash attention或者flash attention2。
-            # 目前只支持LLama，他们正在适配更多的模型：https://github.com/huggingface/transformers/issues/26350
-            # 官方介绍：https://huggingface.co/docs/transformers/v4.33.2/en/perf_infer_gpu_one
+            # 目前只支持LLama和Falcon，他们正在适配更多的模型：https://github.com/huggingface/transformers/issues/26350
             'help': 'Whether to use Flash attention.',
         }
     )

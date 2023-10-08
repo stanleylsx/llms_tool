@@ -154,6 +154,9 @@ class BaseModels:
         else:
             model_to_load = self.model_args.model_path
 
+        if self.model_args.use_flash_attn:
+            config_kwargs['use_flash_attention_2'] = True
+
         if self.model_args.model_type == 'chatglm':
             model = AutoModel.from_pretrained(model_to_load, trust_remote_code=True, **config_kwargs)
         elif self.model_args.model_type == 'falcon':
@@ -181,12 +184,6 @@ class BaseModels:
 
         if self.model_args.use_ntk is not None:
             model = self.use_ntk_to_expend_input_token_length(model)
-
-        if self.model_args.use_flash_attn:
-            if isinstance(model, LlamaForCausalLM):
-                model = model.to_bettertransformer()
-            else:
-                self.logger.warning('Only LLama support Flash Attention locally by transformers now.')
 
         if self.model_args.quantization_bit is not None and self.model_args.quantization == 'cpm':
             model = self.quantize(model, self.model_args.quantization_bit)
