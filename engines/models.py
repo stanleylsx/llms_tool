@@ -185,6 +185,24 @@ class BaseModels:
         if self.model_args.use_ntk is not None:
             model = self.use_ntk_to_expend_input_token_length(model)
 
+        if self.model_args.resize_emb is not None:
+            # refer from https://zhuanlan.zhihu.com/p/656335338
+            vocab_size_of_model = model.get_input_embeddings().weight.size(0)
+            embedding_dim = model.get_input_embeddings().weight.size(1)
+            vocab_size_of_tokenizer = len(self.tokenizer)
+            self.logger.info(f'Vocab of the model: {vocab_size_of_model}')
+            self.logger.info(f'Vocab of the tokenizer: {vocab_size_of_tokenizer}')
+            if vocab_size_of_model != vocab_size_of_tokenizer:
+                self.logger.info('Resize model embeddings to fit tokenizer')
+                model.resize_token_embeddings(vocab_size_of_tokenizer)
+                self.logger.info('Resize model lm_head to fit tokenizer')
+                if self.model_args.model_type == 'chatglm' and any(key.endswith('rotary_pos_emb') for key, _ in model.named_modules()):
+                    model.lm_head = model.transformer.output_layer
+                lm_head = model.lm_head
+                new_lm_head = torch.nn.Linear(in_features=embedding_dim, out_features=vocab_size_of_tokenizer, bias=False)
+                new_lm_head.weight.data[:vocab_size_of_model, :] = lm_head.weight.data[:vocab_size_of_model, :]
+                model.lm_head = new_lm_head.to(lm_head.weight.device).to(self.model_args.torch_dtype)
+
         if self.model_args.quantization_bit is not None and self.model_args.quantization == 'cpm':
             model = self.quantize(model, self.model_args.quantization_bit)
 

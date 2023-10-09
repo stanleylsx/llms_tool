@@ -78,12 +78,20 @@ class ModelArguments:
         }
     )
     use_flash_attn: Optional[bool] = field(
-        default=True,
+        default=False,
         metadata={
             # 是否使用Flash Attention。
             # Huggingface官方支持了LLama和Falcon的Flash Attention，它将根据你安装的版本进行调用flash attention或者flash attention2。
             # 目前只支持LLama和Falcon，他们正在适配更多的模型：https://github.com/huggingface/transformers/issues/26350
             'help': 'Whether to use Flash attention.',
+        }
+    )
+    resize_emb: Optional[str] = field(
+        default=None,
+        metadata={
+            # 使用随机方法初始化重新设置embedding大小并且修改LLM最后的全连接层
+            'help': 'Whether to resize embedding and modify the output dim of last linear of LLM.',
+            'choices': ['random'],
         }
     )
     padding_side: Optional[str] = field(
