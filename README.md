@@ -418,3 +418,7 @@ quantized_or_merged_output_dir: Optional[str] = field(
   howpublished={\url{https://github.com/StanleyLsx/llms_tool}},
 }
 ```
+
+## Star History
+
+![Star History Chart](https://api.star-history.com/svg?repos=StanleyLsx/llms_tool&type=Date)
