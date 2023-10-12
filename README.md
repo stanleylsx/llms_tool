@@ -54,6 +54,7 @@ Aquila   | 7B           |[aquila](https://huggingface.co/BAAI)
 InternLM | 7B、20B      |[internlm](https://huggingface.co/internlm)
 MOSS     | 16B          |[MOSS](https://huggingface.co/fnlp)
 XVERSE   | 13B          |[XVERSE](https://huggingface.co/xverse/XVERSE-13B-Chat)
+Mistral  | 7B           |[Mistral](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1)
 
 * 未进入上表的模型或参数规模暂时没有使用该项目测试过。
 

@@ -29,7 +29,7 @@ class ModelArguments:
             # 模型类型
             'help': 'Model type.',
             'choices': ['chatglm', 'qwen', 'llama', 'falcon', 'baichuan', 'aquila',
-                        'internlm', 'moss', 'bloom', 'rwkv', 'xverse'],
+                        'internlm', 'moss', 'bloom', 'rwkv', 'xverse', 'mistral'],
         }
     )
     model_path: str = field(
@@ -82,7 +82,7 @@ class ModelArguments:
         metadata={
             # 是否使用Flash Attention。
             # Huggingface官方支持了LLama和Falcon的Flash Attention，它将根据你安装的版本进行调用flash attention或者flash attention2。
-            # 目前只支持LLama和Falcon，他们正在适配更多的模型：https://github.com/huggingface/transformers/issues/26350
+            # 目前支持LLama、Falcon和Mistral，他们正在适配更多的模型：https://github.com/huggingface/transformers/issues/26350
             'help': 'Whether to use Flash attention.',
         }
     )
@@ -512,7 +512,8 @@ class TrainingArguments(Seq2SeqTrainingArguments):
             Aquila choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"] \
             Baichuan choices: [\"W_pack\", \"o_proj\", \"gate_proj\", \"up_proj\", \"down_proj\"] \
             Qwen choices: [\"c_attn\", \"c_proj\", \"w1\", \"w2\"] \
-            Xverse choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"]"
+            Xverse choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"] \
+            Mistral choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"]"
         }
     )
     # prompt_tuning:

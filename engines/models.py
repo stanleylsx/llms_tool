@@ -5,6 +5,7 @@
 # @File : predict.py
 # @Software: PyCharm
 from transformers import AutoModel, LlamaForCausalLM, BloomForCausalLM, AutoModelForCausalLM, RwkvForCausalLM, FalconForCausalLM
+from transformers import MistralForCausalLM
 from transformers import BitsAndBytesConfig
 from transformers import PreTrainedModel
 from transformers.generation.utils import GenerationConfig
@@ -161,6 +162,8 @@ class BaseModels:
             model = AutoModel.from_pretrained(model_to_load, trust_remote_code=True, **config_kwargs)
         elif self.model_args.model_type == 'falcon':
             model = FalconForCausalLM.from_pretrained(model_to_load, **config_kwargs)
+        elif self.model_args.model_type == 'mistral':
+            model = MistralForCausalLM.from_pretrained(model_to_load, **config_kwargs)
         elif self.model_args.model_type in ['baichuan', 'aquila', 'internlm', 'moss', 'xverse']:
             model = AutoModelForCausalLM.from_pretrained(model_to_load, trust_remote_code=True, **config_kwargs)
         elif self.model_args.model_type == 'qwen':
