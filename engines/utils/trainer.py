@@ -210,14 +210,3 @@ class MyPPOTrainer(PPOTrainer):
 
         self.tokenizer.padding_side = padding_side_default
         return outputs
-
-
-class MyDPOTrainer(DPOTrainer):
-    def __init__(self, is_deepspeed_train, **kwargs):
-        super().__init__(**kwargs)
-        if self.ref_model:
-            if is_deepspeed_train:
-                self.ref_model = self.accelerator._prepare_deepspeed(self.ref_model)
-                self.ref_model.eval()
-            else:
-                self.ref_model = self.accelerator.prepare_model(self.ref_model, evaluation_mode=True)

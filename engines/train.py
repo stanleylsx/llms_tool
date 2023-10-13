@@ -8,7 +8,7 @@ from engines.models import BaseModels
 from engines.utils.print_parameters import print_trainable_parameters
 from engines.utils.metrics import Metrics
 from engines.data import DataCollatorForRewardModelTraining
-from engines.utils.trainer import SFTTrainer, RewardTrainer, MyPPOTrainer, MyDPOTrainer
+from engines.utils.trainer import SFTTrainer, RewardTrainer, MyPPOTrainer, DPOTrainer
 from peft import LoraConfig, AdaLoraConfig, PromptTuningConfig, PromptEncoderConfig, PrefixTuningConfig
 from peft import TaskType, get_peft_model
 from copy import deepcopy
@@ -414,8 +414,7 @@ class Train(BaseModels):
         training_args = self.training_args.to_dict()
         training_args |= {'remove_unused_columns': False}
         training_args = TrainingArguments(**training_args)
-        dpo_trainer = MyDPOTrainer(
-            is_deepspeed_train=self.is_deepspeed_train,
+        dpo_trainer = DPOTrainer(
             ref_model=ref_model,
             model=model,
             beta=0.1,
