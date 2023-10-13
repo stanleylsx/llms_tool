@@ -8,7 +8,8 @@ from engines.models import BaseModels
 from engines.utils.print_parameters import print_trainable_parameters
 from engines.utils.metrics import Metrics
 from engines.data import DataCollatorForRewardModelTraining
-from engines.utils.trainer import SFTTrainer, RewardTrainer, MyPPOTrainer, DPOTrainer
+from engines.utils.trainer import SFTTrainer, RewardTrainer, MyPPOTrainer
+from trl import DPOTrainer
 from peft import LoraConfig, AdaLoraConfig, PromptTuningConfig, PromptEncoderConfig, PrefixTuningConfig
 from peft import TaskType, get_peft_model
 from copy import deepcopy

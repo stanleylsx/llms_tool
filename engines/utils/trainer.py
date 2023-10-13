@@ -1,6 +1,6 @@
 from transformers import Seq2SeqTrainer, Trainer
 from transformers.modeling_utils import unwrap_model
-from trl import PPOTrainer, DPOTrainer
+from trl import PPOTrainer
 from trl.core import PPODecorators, logprobs_from_logits
 from typing import Optional, List
 import torch
