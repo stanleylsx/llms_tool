@@ -32,7 +32,7 @@ class Train(BaseModels):
             self.lora_target_modules = [target.strip() for target in self.training_args.lora_target.split(',')]
         assert self.training_args.fine_tuning_type in [
             'lora', 'full', 'adalora', 'prompt_tuning', 'p_tuning', 'prefix_tuning'], 'Invalid fine-tuning method.'
-        self.qlore = False
+        self.qlora = False
         self.logger = logger
         self.metrics = Metrics(data_manager, logger)
 
@@ -52,7 +52,7 @@ class Train(BaseModels):
             self.logger.info('Init new peft model.')
             if self.model_args.quantization_bit is None:
                 self.logger.info('Adapter lora training.')
-                self.qlore = True
+                self.qlora = True
             else:
                 if self.model_args.quantization == 'cpm':
                     raise ValueError('Quantization CPM does not support qlora train.')
@@ -72,7 +72,7 @@ class Train(BaseModels):
             self.logger.info('Init new peft model.')
             if self.model_args.quantization_bit is None:
                 self.logger.info('Adapter adalora training.')
-                self.qlore = True
+                self.qlora = True
             else:
                 if self.model_args.quantization == 'cpm':
                     raise ValueError('Quantization CPM does not support qlora train.')
