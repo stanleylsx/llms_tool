@@ -127,16 +127,30 @@ class Train(BaseModels):
         return model
 
     def set_train_environment(self, model):
+
+        if (noise_alpha := self.training_args.noise_alpha) > 0:
+            for _, module in model.named_modules():
+                if isinstance(module, torch.nn.Embedding):
+                    dims = torch.tensor(module.weight.shape[0] * module.weight.shape[1])
+                    mag_norm = noise_alpha / torch.sqrt(dims)
+                    scaled_noise = torch.zeros_like(module.weight).uniform_(-mag_norm, mag_norm)
+                    module.weight += scaled_noise
+                    break
+
         if self.training_args.gradient_checkpointing:
+            # For backward compatibility
+            if hasattr(model, 'enable_input_require_grads'):
+                model.enable_input_require_grads()
+            else:
+                def make_inputs_require_grad(module, input, output):
+                    output.requires_grad_(True)
+                model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
+            # enable gradient checkpointing for memory efficiency
             model.gradient_checkpointing_enable()
+            # turn off when gradient checkpointing is enabled
             model.config.use_cache = False
         else:
             model.config.use_cache = True
-
-        try:
-            model.enable_input_require_grads()
-        except:
-            self.logger.warning('Could not enable input require_grads on model, skipping.')
 
         if torch.cuda.device_count() > 1:
             # Keeps Trainer from trying its own DataParallelism when more than 1 gpu is available

@@ -568,7 +568,14 @@ class TrainingArguments(Seq2SeqTrainingArguments):
     log_with: Optional[str] = field(
         default='wandb',
         metadata={
-            "help": "Log with either 'wandb' or 'tensorboard', check  https://huggingface.co/docs/accelerate/usage_guides/tracking for more details"
+            'help': "Log with either 'wandb' or 'tensorboard', check  https://huggingface.co/docs/accelerate/usage_guides/tracking for more details"
+        },
+    )
+    noise_alpha: Optional[float] = field(
+        # https://arxiv.org/abs/2310.05914
+        default=5,
+        metadata={
+            'help': 'Whether to use Noisy Embedding Fine Tuning, if you want use it, set noise_alpha > 0.'
         },
     )
 

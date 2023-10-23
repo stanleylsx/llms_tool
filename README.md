@@ -14,6 +14,7 @@
 ## Updates
 Date| Detail
 :---|---
+2023-10-26|支持使用[NEFTune](https://arxiv.org/abs/2310.05914)对LLM进行noise tune
 2023-10-09|增加扩充词表后Embedding初始化方式
 2023-10-08|LLama和Falcon两类模型支持Flash Attention2
 2023-09-26|支持模型预训练

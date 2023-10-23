@@ -25,14 +25,14 @@ class SFTTrainer(Seq2SeqTrainer):
         return loss, generated_tokens, labels
 
     def _pad_tensors_to_target_len(self, left, right):
-        if self.tokenizer.pad_token_id is None:
+        if pad_token_id := self.tokenizer.pad_token_id is None:
             raise ValueError('Pad_token_id must be set in the configuration of the model.')
-        padded_tensor = self.tokenizer.pad_token_id * torch.ones_like(right)
+        padded_tensor = pad_token_id * torch.ones_like(right)
         if self.tokenizer.padding_side == 'left':
             padded_tensor[:, -left.shape[-1]:] = left
         else:
             padded_tensor[:, :left.shape[-1]] = left
-        return padded_tensor
+        return padded_tensor.contiguous()
 
 
 class RewardTrainer(Trainer):
