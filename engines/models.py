@@ -198,7 +198,6 @@ class BaseModels:
             if vocab_size_of_model != vocab_size_of_tokenizer:
                 self.logger.info('Resize model embeddings to fit tokenizer')
                 model.resize_token_embeddings(vocab_size_of_tokenizer)
-                self.logger.info('Resize model lm_head to fit tokenizer')
 
         if self.model_args.quantization_bit is not None and self.model_args.quantization == 'cpm':
             model = self.quantize(model, self.model_args.quantization_bit)
