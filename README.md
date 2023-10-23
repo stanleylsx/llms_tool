@@ -423,4 +423,4 @@ quantized_or_merged_output_dir: Optional[str] = field(
 
 ## Star History
 
-![Star History Chart](https://api.star-history.com/svg?repos=stanleylsx/llms_tool&type=Date)
+![Star History Chart](https://api.star-history.com/svg?repos=StanleyLsx/llms_tool&type=Date)
