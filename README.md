@@ -417,10 +417,10 @@ quantized_or_merged_output_dir: Optional[str] = field(
   title={LLMs Tool: a tool for large language models},
   author={Shouxian Li},
   year={2023},
-  howpublished={\url{https://github.com/StanleyLsx/llms_tool}},
+  howpublished={\url{https://github.com/stanleylsx/llms_tool}},
 }
 ```
 
 ## Star History
 
-![Star History Chart](https://api.star-history.com/svg?repos=StanleyLsx/llms_tool&type=Date)
+![Star History Chart](https://api.star-history.com/svg?repos=stanleylsx/llms_tool&type=Date)
