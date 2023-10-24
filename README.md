@@ -316,7 +316,7 @@ reward_model_checkpoint: str = field(
         'help': 'The checkpoint of reward model.'
     }
 )
-```  
+```
 PPO方法对模型进行强化学习训练的数据和SFT阶段训练的数据的格式是一致的，此外使用的时候还需要在TrainingArguments中把PPO的配置填写好，在config.py中将mode修改为ppo_train，然后运行main.py。训练的结果将会通过wandb的格式记录在训练输出的文件夹中。
 
 #### DPO
@@ -336,7 +336,7 @@ checkpoint_dir: Optional[str] = field(
         'help': 'Path to save the (delta) model checkpoints as well as the configurations automatically.',
     }
 )
-```  
+```
 DPO方法对模型进行强化学习训练的数据和奖励模型的数据是一致的，在config.py中将mode修改为dpo_train，然后运行main.py。训练的结果将会通过wandb的格式记录在训练输出的文件夹中。
 
 * 如果前面使用的是adapter在SFT模型上训练的模型，RLHF的时候项目会融合前面的adapter后创建新的adapter继续训练。
@@ -378,11 +378,12 @@ deepspeed --num_gpus 3 --master_port=9901 main.py
 * 多机多卡需要指定更多的参数，可以参考hugingface的deepspeed文档。
 
 ## Others
-Mode                | Describe                                                                                                      | 
-:-------------------|---------------------------------------------------------------------------------------------------------------|
-merge_lora_model    | 将lora模型和基座模型融合，支持lora和adalora之后的权重合并，其它的训练方法产生的adapter直接通过peft加载即可，不支持合并|
-show_model_info     | 打印模型的结构和模型的参数                                                                                      |
-save_quantized_model| 量化并保存量化模型                                                                                             |
+ Mode                 | Describe                                                     
+ :------------------- | ------------------------------------------------------------ 
+ merge_lora_model     | 将lora模型和基座模型融合，支持lora和adalora之后的权重合并，其它的训练方法产生的adapter直接通过peft加载即可，不支持合并 
+ show_model_info      | 打印模型的结构和模型的参数                                   
+ save_quantized_model | 量化并保存量化模型                                           
+ expand_vocab         | 根据给定语料扩充词表（如扩充中文词表、垂域词表等）           
 
 * merge_peft_model和save_quantized_model需要在ModelArguments设置输出地址。
 ```
@@ -395,6 +396,7 @@ quantized_or_merged_output_dir: Optional[str] = field(
 )
 ```
 * 使用bnb和cpm量化将会默认对除了输出层的所有线性层进行量化。
+* 使用 expand_vocab 方法进行词表扩充时，需要指定训练词表的语料路径（文件或文件夹均可）。仅支持 `.txt` 与 `.tsv` 格式。词表扩充后，一般需要继续预训练。
 
 ## Todo
 - [x] 奖励模型训练

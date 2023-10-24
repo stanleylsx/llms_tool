@@ -70,3 +70,7 @@ if __name__ == '__main__':
             raise ValueError('Quantization bit not set.')
         model = BaseModels(data_manager, config, logger)
         model.save_quantized_model()
+    elif mode == 'expand_vocab':
+        # 扩充词表
+        model = BaseModels(data_manager, config, logger)
+        model.expand_vocab()

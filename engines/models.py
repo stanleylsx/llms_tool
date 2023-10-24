@@ -13,6 +13,7 @@ from trl import AutoModelForCausalLMWithValueHead
 from engines.utils.dispatch_to_multi_gpu import dispatch
 from engines.utils.print_parameters import summary
 from engines.utils.cpm_quantizer import QuantizedLinear
+from engines.utils.expand_vocab import expand_vocab
 from peft.utils import CONFIG_NAME, WEIGHTS_NAME
 from peft import PeftModel
 from types import MethodType
@@ -275,3 +276,13 @@ class BaseModels:
         info = summary(model, max_level=3)
         self.logger.info(f'Model struct:\n{model}')
         self.logger.info(f'Model parameter:\n{info}')
+    
+    def expand_vocab(self):
+        expand_vocab(
+            self.logger,
+            self.model_args.model_path,
+            self.data_manager.data_args.corpus_path_for_expansion,
+            self.model_args.model_type,
+            self.model_args.save_path_after_vocab_expansion,
+            self.training_args
+        )
