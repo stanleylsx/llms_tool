@@ -15,7 +15,22 @@ import torch
 # 存储量化的模型：            save_quantized_model
 # 模型效果测试及评估：        sft_batch_test
 # 奖励模型效果测试及评估：     rm_batch_test
-mode = 'expand_vocab'
+# 扩充词表：                  expand_vocab
+
+
+@dataclass
+class WorkingMode:
+    mode: str = field(
+        default='web_inference',
+        metadata={
+            # 工作模式
+            'help': 'Working mode.',
+            'choices': ['pretrain', 'sft_train', 'rm_train', 'ppo_train',
+                        'dpo_train', 'web_inference', 'terminal_inference',
+                        'merge_lora_model', 'show_model_info', 'save_quantized_model',
+                        'sft_batch_test', 'rm_batch_test', 'expand_vocab'],
+        }
+    )
 
 
 @dataclass
