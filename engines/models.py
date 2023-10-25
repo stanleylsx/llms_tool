@@ -2,7 +2,7 @@
 # @Time : 2023/7/2 22:05
 # @Author : lishouxian
 # @Email : gzlishouxian@gmail.com
-# @File : predict.py
+# @File : models.py
 # @Software: PyCharm
 from transformers import AutoModel, LlamaForCausalLM, BloomForCausalLM, AutoModelForCausalLM, RwkvForCausalLM, FalconForCausalLM
 from transformers import MistralForCausalLM
