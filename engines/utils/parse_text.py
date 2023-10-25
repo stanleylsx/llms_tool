@@ -2,7 +2,7 @@
 # @Time : 2023/7/2 22:05
 # @Author : copy from https://github.com/GaiZhenbiao/ChuanhuChatGPT
 # @Email : gzlishouxian@gmail.com
-# @File : cpm_quantizer.py
+# @File : parse_text.py
 # @Software: PyCharm
 def parse_text(text):
     lines = text.split('\n')
