@@ -173,9 +173,9 @@ class ModelArguments:
         }
     )
     save_path_after_vocab_expansion: Optional[str] = field(
-        default="auto",
+        default='auto',
         metadata={
-            # 扩充词表后新模型保存的路径，默认"auto"，即为原文件夹中新建一个子文件夹
+            # 扩充词表后新模型保存的路径，默认auto，即为原文件夹中新建一个子文件夹
             'help': 'The path to save the new model after expanding the vocab.'
         }
     )

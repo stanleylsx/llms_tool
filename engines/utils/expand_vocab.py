@@ -14,6 +14,7 @@ from transformers import AutoTokenizer, AutoModel
 cur_dir = os.path.dirname(os.path.abspath(__file__))
 par_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+
 # 训练词表
 def train_vocab(logger,
                 save_path,
@@ -69,7 +70,7 @@ def add_new_tokens(logger, tokenizer, save_path):
     tokenizer.add_tokens(clean_vocab)
     tokenizer.save_pretrained(save_path)
     logger.info(f'New tokens added, new tokenizer is saved to {save_path}.')
-    
+
     return len(tokenizer)
 
 
@@ -114,7 +115,6 @@ def expand_vocab(logger,
     logger.info('The vocabulary was successfully expanded.')
 
 
-#------------------------------------------- 辅助函数 -------------------------------------------#
 def process_corpus(corpus_path):
     if not os.path.isdir(corpus_path):
         if not corpus_path.endswith('.txt') and not corpus_path.endswith('.tsv'):
@@ -133,15 +133,15 @@ def process_corpus(corpus_path):
 
 
 def is_chinese_char(cp):
-    if ((cp >= 0x4E00 and cp <= 0x9FFF)
-        or (cp >= 0x3400 and cp <= 0x4DBF)
-        or (cp >= 0x20000 and cp <= 0x2A6DF)
-        or (cp >= 0x2A700 and cp <= 0x2B73F)
-        or (cp >= 0x2B740 and cp <= 0x2B81F)
-        or (cp >= 0x2B820 and cp <= 0x2CEAF)
-        or (cp >= 0xF900 and cp <= 0xFAFF)
-        or (cp >= 0x2F800 and cp <= 0x2FA1F)
-    ):
+    if ((
+            cp >= 0x4E00 and cp <= 0x9FFF) or (
+            cp >= 0x3400 and cp <= 0x4DBF) or (
+            cp >= 0x20000 and cp <= 0x2A6DF) or (
+            cp >= 0x2A700 and cp <= 0x2B73F) or (
+            cp >= 0x2B740 and cp <= 0x2B81F) or (
+            cp >= 0x2B820 and cp <= 0x2CEAF) or (
+            cp >= 0xF900 and cp <= 0xFAFF) or (
+            cp >= 0x2F800 and cp <= 0x2FA1F)):
         return True
     return False
 

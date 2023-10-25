@@ -14,7 +14,8 @@
 ## Updates
 Date| Detail
 :---|---
-2023-10-26|支持使用[NEFTune](https://arxiv.org/abs/2310.05914)对LLM进行noise tune
+2023-10-25|支持词表扩充功能
+2023-10-24|支持使用[NEFTune](https://arxiv.org/abs/2310.05914)对LLM进行noise tune
 2023-10-09|增加扩充词表后Embedding初始化方式
 2023-10-08|LLama和Falcon两类模型支持Flash Attention2
 2023-09-26|支持模型预训练
@@ -396,7 +397,7 @@ quantized_or_merged_output_dir: Optional[str] = field(
 )
 ```
 * 使用bnb和cpm量化将会默认对除了输出层的所有线性层进行量化。
-* 使用 expand_vocab 方法进行词表扩充时，需要指定训练词表的语料路径（文件或文件夹均可）。仅支持 `.txt` 与 `.tsv` 格式。词表扩充后，一般需要继续预训练。
+* 使用expand_vocab方法进行词表扩充时，需要指定训练词表的语料路径（文件或文件夹均可）。仅支持 `.txt` 与 `.tsv` 格式。词表扩充后，一般需要继续预训练。
 
 ## Todo
 - [x] 奖励模型训练

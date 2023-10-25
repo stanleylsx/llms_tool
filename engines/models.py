@@ -192,7 +192,6 @@ class BaseModels:
         if self.model_args.resize_emb is not None:
             # refer from https://zhuanlan.zhihu.com/p/656335338
             vocab_size_of_model = model.get_input_embeddings().weight.size(0)
-            embedding_dim = model.get_input_embeddings().weight.size(1)
             vocab_size_of_tokenizer = len(self.tokenizer)
             self.logger.info(f'Vocab of the model: {vocab_size_of_model}')
             self.logger.info(f'Vocab of the tokenizer: {vocab_size_of_tokenizer}')
@@ -276,7 +275,7 @@ class BaseModels:
         info = summary(model, max_level=3)
         self.logger.info(f'Model struct:\n{model}')
         self.logger.info(f'Model parameter:\n{info}')
-    
+
     def expand_vocab(self):
         expand_vocab(
             self.logger,
