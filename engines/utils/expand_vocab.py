@@ -30,7 +30,7 @@ def train_vocab(logger,
         input=corpus,
 
         # 保存的模型前缀名
-        model_prefix="bpe_expand",
+        model_prefix='bpe_expand',
 
         # 词表大小
         vocab_size=vocab_size,
@@ -39,7 +39,7 @@ def train_vocab(logger,
         character_coverage=character_coverage,
 
         # 分词算法
-        model_type="bpe",
+        model_type='bpe',
 
         # 是否将数字划分为单个 token, 在 llama 中是这么做的
         split_digits=True if model_arch == 'llama' else False,

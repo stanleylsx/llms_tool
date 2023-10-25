@@ -14,7 +14,7 @@
 ## Updates
 Date| Detail
 :---|---
-2023-10-25|支持词表扩充功能
+2023-10-25|基于sentencepiece实现词表扩充功能
 2023-10-24|支持使用[NEFTune](https://arxiv.org/abs/2310.05914)对LLM进行noise tune
 2023-10-09|增加扩充词表后Embedding初始化方式
 2023-10-08|LLama和Falcon两类模型支持Flash Attention2
