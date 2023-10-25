@@ -604,7 +604,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         # https://arxiv.org/abs/2310.05914
         default=5,
         metadata={
-            'help': 'Whether to use Noisy Embedding Fine Tuning, if you want use it, set noise_alpha > 0.'
+            'help': 'Whether to use Noisy Embedding Fine Tuning, if you want using it, set noise_alpha > 0.'
         },
     )
     # 下面是扩充词表的部分具体参数
