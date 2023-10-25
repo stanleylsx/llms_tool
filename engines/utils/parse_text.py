@@ -1,5 +1,10 @@
+# -*- coding: utf-8 -*-
+# @Time : 2023/7/2 22:05
+# @Author : copy from https://github.com/GaiZhenbiao/ChuanhuChatGPT
+# @Email : gzlishouxian@gmail.com
+# @File : cpm_quantizer.py
+# @Software: PyCharm
 def parse_text(text):
-    """copy from https://github.com/GaiZhenbiao/ChuanhuChatGPT"""
     lines = text.split('\n')
     lines = [line for line in lines if line != '']
     count = 0
@@ -10,7 +15,7 @@ def parse_text(text):
             if count % 2 == 1:
                 lines[i] = f'<pre><code class="language-{items[-1]}">'
             else:
-                lines[i] = f'<br></code></pre>'
+                lines[i] = '<br></code></pre>'
         else:
             if i > 0:
                 if count % 2 == 1:

@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+# @Time : 2023/9/21 21:30
+# @Author : lishouxian
+# @Email : gzlishouxian@gmail.com
+# @File : dispatch_to_multi_gpu.py
+# @Software: PyCharm
 from accelerate import infer_auto_device_map, dispatch_model
 from accelerate.utils import get_balanced_memory
 import torch

@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+# @Time : 2023/7/2 22:05
+# @Author : lishouxian
+# @Email : gzlishouxian@gmail.com
+# @File : trainer.py
+# @Software: PyCharm
 from transformers import Seq2SeqTrainer, Trainer
 from transformers.modeling_utils import unwrap_model
 from trl import PPOTrainer
