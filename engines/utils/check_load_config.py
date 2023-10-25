@@ -5,16 +5,15 @@
 # @File : check_load_config.py
 # @Software: PyCharm
 from transformers import HfArgumentParser
-from config import ModelArguments, DataTrainingArguments, TrainingArguments, GeneratingArguments
-from config import mode
+from config import WorkingMode, ModelArguments, DataTrainingArguments, TrainingArguments, GeneratingArguments
 import os
 
 
 class Configure:
     def __init__(self):
-        parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments, GeneratingArguments))
-        self.model_args, self.data_args, self.training_args, self.generating_args = parser.parse_args_into_dataclasses()
-        self.mode = mode
+        parser = HfArgumentParser((WorkingMode, ModelArguments, DataTrainingArguments, TrainingArguments, GeneratingArguments))
+        self.mode, self.model_args, self.data_args, self.training_args, self.generating_args = parser.parse_args_into_dataclasses()
+        self.mode = self.mode.mode
 
         assert self.model_args.quantization_bit is None or self.training_args.fine_tuning_type in (
             'lora', 'adalora'), 'Quantization is only compatible with the LoRA method(QLora).'

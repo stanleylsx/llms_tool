@@ -15,7 +15,22 @@ import torch
 # 存储量化的模型：            save_quantized_model
 # 模型效果测试及评估：        sft_batch_test
 # 奖励模型效果测试及评估：     rm_batch_test
-mode = 'web_inference'
+# 扩充词表：                  expand_vocab
+
+
+@dataclass
+class WorkingMode:
+    mode: str = field(
+        default='web_inference',
+        metadata={
+            # 工作模式
+            'help': 'Working mode.',
+            'choices': ['pretrain', 'sft_train', 'rm_train', 'ppo_train',
+                        'dpo_train', 'web_inference', 'terminal_inference',
+                        'merge_lora_model', 'show_model_info', 'save_quantized_model',
+                        'sft_batch_test', 'rm_batch_test', 'expand_vocab'],
+        }
+    )
 
 
 @dataclass
@@ -157,6 +172,13 @@ class ModelArguments:
             'help': 'Path to save the quantized or merged model checkpoints as well as the configurations manually.',
         }
     )
+    save_path_after_vocab_expansion: Optional[str] = field(
+        default="auto",
+        metadata={
+            # 扩充词表后新模型保存的路径，默认"auto"，即为原文件夹中新建一个子文件夹
+            'help': 'The path to save the new model after expanding the vocab.'
+        }
+    )
 
     def __post_init__(self):
         if self.torch_dtype in ('auto', None):
@@ -237,6 +259,13 @@ class DataTrainingArguments:
         metadata={
             # 是否让label里面的padding部分不参与计算。
             'help': 'Whether to ignore the tokens corresponding to padded labels in the loss computation or not.'
+        }
+    )
+    corpus_path_for_expansion: Optional[str] = field(
+        default='datasets/pretrain/example/train',
+        metadata={
+            # 用于扩充词表的语料所在路径。
+            'help': "The corpus path for vocab's expansion."
         }
     )
 
@@ -577,6 +606,21 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         metadata={
             'help': 'Whether to use Noisy Embedding Fine Tuning, if you want use it, set noise_alpha > 0.'
         },
+    )
+    # 下面是扩充词表的部分具体参数
+    vocab_size: Optional[int] = field(
+        default=8000,
+        metadata={
+            # 指定训练得到的词表大小（实际去重清洗后会稍小）
+            'help': 'Specify the size of the trained vocabulary (it will actually be smaller).'
+        }
+    )
+    max_sentence_length: Optional[int] = field(
+        default=24000,
+        metadata={
+            # 指定输入句子的最大长度，以字节为单位
+            'help': 'Specifies the maximum length of the input sentence(in bytes).'
+        }
     )
 
 
