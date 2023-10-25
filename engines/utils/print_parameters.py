@@ -2,7 +2,7 @@
 # @Time : 2023/7/2 22:05
 # @Author : copy from https://github.com/airaria/TextPruner/blob/main/src/textpruner/utils.py
 # @Email : gzlishouxian@gmail.com
-# @File : cpm_quantizer.py
+# @File : print_parameters.py
 # @Software: PyCharm
 import torch
 
