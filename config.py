@@ -96,7 +96,7 @@ class ModelArguments:
         default=False,
         metadata={
             # 是否使用Flash Attention。
-            # Huggingface官方支持了LLama和Falcon的Flash Attention，它将根据你安装的版本进行调用flash attention或者flash attention2。
+            # Huggingface官方支持了LLama、Falcon和Mistral的Flash Attention，它将根据你安装的版本进行调用flash attention或者flash attention2。
             # 目前支持LLama、Falcon和Mistral，他们正在适配更多的模型：https://github.com/huggingface/transformers/issues/26350
             'help': 'Whether to use Flash attention.',
         }
@@ -275,6 +275,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
     fine_tuning_type: Optional[str] = field(
         default='lora',
         metadata={
+            # 可选用的训练方式
             'help': 'Which fine-tuning method to use.',
             'choices': ['full', 'lora', 'adalora', 'prompt_tuning', 'p_tuning', 'prefix_tuning']
         }
@@ -289,66 +290,82 @@ class TrainingArguments(Seq2SeqTrainingArguments):
     output_dir: str = field(
         default='checkpoint/sft',
         metadata={
+            # 这是存放训练之后保存模型文件所在的文件夹
+            # 继承于transformers的TrainingArguments
             'help': 'The output directory where the model predictions and checkpoints will be written.'
         }
     )
     do_train: bool = field(
         default=True,
         metadata={
+            # 进行训练
+            # 继承于transformers的TrainingArguments
             'help': 'Whether to run training.'
         }
     )
     do_eval: bool = field(
         default=True,
         metadata={
+            # 跑验证集
+            # 继承于transformers的TrainingArguments
             'help': 'Whether to run eval on the dev set.'
         }
     )
     predict_with_generate: bool = field(
         default=True,
         metadata={
+            # 生成时使用seq2seq方式
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'Whether to use generate to calculate generative metrics (ROUGE, BLEU).'
         }
     )
     num_train_epochs: float = field(
         default=5.0,
         metadata={
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'Total number of training epochs to perform.'
         }
     )
     per_device_train_batch_size: Optional[int] = field(
         default=2,
         metadata={
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'Batch size per GPU/TPU core/CPU for training.'
         }
     )
     per_device_eval_batch_size: Optional[int] = field(
         default=2,
         metadata={
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'Batch size per GPU/TPU core/CPU for evaluation.'
         }
     )
     resume_from_checkpoint: Optional[Union[str, bool]] = field(
         default=True,
         metadata={
+            # 断点续训
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'Continue train model from your checkpoint.'
         }
     )
     gradient_accumulation_steps: Optional[int] = field(
         default=2,
         metadata={
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'Number of updates steps to accumulate before performing a backward/update pass.'
         }
     )
     gradient_checkpointing: bool = field(
         default=True,
         metadata={
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'If True, use gradient checkpointing to save memory at the expense of slower backward pass.'
         }
     )
     optim: Optional[str] = field(
         default='adamw_torch',
         metadata={
+            # 默认就好，继承于transformers的Seq2SeqTrainingArguments
             'help': 'The optimizer to use.',
             'choices': ['adamw_hf', 'adamw_torch', 'adamw_torch_fused', 'adamw_apex_fused', 'adamw_anyprecision']
         }
@@ -356,46 +373,60 @@ class TrainingArguments(Seq2SeqTrainingArguments):
     lr_scheduler_type: Optional[str] = field(
         default='cosine',
         metadata={
+            # 默认就好，继承于transformers的Seq2SeqTrainingArguments
             'help': 'The scheduler type to use.'
         }
     )
     learning_rate: float = field(
         default=1e-3,
         metadata={
+            # 设置训练时候的学习率
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'The initial learning rate for AdamW.'
         }
     )
     warmup_steps: int = field(
         default=0,
         metadata={
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'Linear warmup over warmup_steps.'
         }
     )
     warmup_ratio: float = field(
         default=0.0,
         metadata={
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'Linear warmup over warmup_ratio fraction of total steps.'
         }
     )
     fp16: bool = field(
         default=True,
-        metadata={'help': 'Whether to use fp16 (mixed) precision instead of 32-bit'},
+        metadata={
+            # 开启fp16混合精度训练
+            # 继承于transformers的Seq2SeqTrainingArguments
+            'help': 'Whether to use fp16 (mixed) precision instead of 32-bit'
+        },
     )
     weight_decay: float = field(
         default=0.0,
         metadata={
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'Weight decay for AdamW if we apply some.'
         }
     )
     evaluation_strategy: str = field(
         default='no',
         metadata={
+            # 默认就好
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'The evaluation strategy to use.'
         }
     )
     eval_steps: Optional[float] = field(
         default=None,
         metadata={
+            # 默认就好
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': (
                 'Run an evaluation every X steps. Should be an integer or a float in range `[0,1)`.'
                 'If smaller than 1, will be interpreted as ratio of total training steps.'
@@ -405,6 +436,8 @@ class TrainingArguments(Seq2SeqTrainingArguments):
     save_steps: float = field(
         default=1000,
         metadata={
+            # 默认就好
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': (
                 'Save checkpoint every X updates steps. Should be an integer or a float in range `[0,1)`.'
                 'If smaller than 1, will be interpreted as ratio of total training steps.'
@@ -414,12 +447,14 @@ class TrainingArguments(Seq2SeqTrainingArguments):
     save_strategy: str = field(
         default='steps',
         metadata={
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'The checkpoint save strategy to use.'
         }
     )
     save_total_limit: Optional[int] = field(
         default=None,
         metadata={
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'Limit the total amount of checkpoints. Deletes the older checkpoints in the output_dir. '
                     'Default is unlimited checkpoints'
         }
@@ -427,6 +462,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
     overwrite_output_dir: bool = field(
         default=False,
         metadata={
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'Overwrite the content of the output directory. '
                     'Use this to continue training if output_dir points to a checkpoint directory.'
         }
@@ -434,12 +470,15 @@ class TrainingArguments(Seq2SeqTrainingArguments):
     ddp_timeout: Optional[int] = field(
         default=1800,
         metadata={
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'Overrides the default timeout for distributed training (value should be given in seconds).'
         },
     )
     deepspeed: Optional[str] = field(
         default=None,
         metadata={
+            # 如果使用deepspeed进行训练，此处填写deepspeed的配置
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'Enable deepspeed and pass the path to deepspeed json config file (e.g. ds_config.json) '
                     'or an already loaded json file as a dict'
         }
@@ -447,18 +486,21 @@ class TrainingArguments(Seq2SeqTrainingArguments):
     report_to: Optional[List[str]] = field(
         default=None,
         metadata={
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'The list of integrations to report the results and logs to.'
         }
     )
     logging_strategy: str = field(
         default='steps',
         metadata={
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'The logging strategy to use.'
         }
     )
     logging_steps: float = field(
         default=10,
         metadata={
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': (
                 'Log every X updates steps. Should be an integer or a float in range `[0,1)`.'
                 'If smaller than 1, will be interpreted as ratio of total training steps.'
@@ -468,8 +510,16 @@ class TrainingArguments(Seq2SeqTrainingArguments):
     logging_first_step: bool = field(
         default=False,
         metadata={
+            # 继承于transformers的Seq2SeqTrainingArguments
             'help': 'Log the first global_step'
         }
+    )
+    noise_alpha: Optional[float] = field(
+        default=5,
+        metadata={
+            # 使用NEFTune对模型进行Noise Tune，https://arxiv.org/abs/2310.05914
+            'help': 'Whether to use Noisy Embedding Fine Tuning, if you want using it, set noise_alpha > 0.'
+        },
     )
     # 下面都是peft的设置参数
     # Lora:
@@ -598,13 +648,6 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         default='wandb',
         metadata={
             'help': "Log with either 'wandb' or 'tensorboard', check  https://huggingface.co/docs/accelerate/usage_guides/tracking for more details"
-        },
-    )
-    noise_alpha: Optional[float] = field(
-        # https://arxiv.org/abs/2310.05914
-        default=5,
-        metadata={
-            'help': 'Whether to use Noisy Embedding Fine Tuning, if you want using it, set noise_alpha > 0.'
         },
     )
     # 下面是扩充词表的部分具体参数
