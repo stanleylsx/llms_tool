@@ -9,6 +9,7 @@ import os
 import shutil
 import sentencepiece as sp
 from transformers import AutoTokenizer, AutoModel
+from tokenizers import AddedToken
 
 
 cur_dir = os.path.dirname(os.path.abspath(__file__))
@@ -67,7 +68,7 @@ def add_new_tokens(logger, tokenizer, save_path):
     raw_vocab = [sp_bpe.id_to_piece(id) for id in range(sp_bpe.get_piece_size())]
     clean_vocab = list(set(filter(is_chinese, raw_vocab)))
 
-    tokenizer.add_tokens(clean_vocab)
+    tokenizer.add_tokens([AddedToken(token, normalized=False) for token in clean_vocab])
     tokenizer.save_pretrained(save_path)
     logger.info(f'New tokens added, new tokenizer is saved to {save_path}.')
 
