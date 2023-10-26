@@ -283,5 +283,6 @@ class BaseModels:
             self.data_manager.data_args.corpus_path_for_expansion,
             self.model_args.model_type,
             self.model_args.save_path_after_vocab_expansion,
+            self.model_args.torch_dtype,
             self.training_args
         )
