@@ -93,12 +93,19 @@ def expand_vocab(logger,
                  corpus_path,
                  model_arch,
                  save_path,
+                 torch_dtype,
                  args
                  ):
     logger.info(f'Load base tokenizer from {model_path}.')
     tokenizer = AutoTokenizer.from_pretrained(model_path)
+
     logger.info(f'Load base model from {model_path}'.capitalize)
-    model = AutoModel.from_pretrained(model_path, trust_remote_code=True)
+    model = AutoModel.from_pretrained(
+        model_path,
+        trust_remote_code=True,
+        torch_dtype=torch_dtype
+    )
+    
     save_path = os.path.join(model_path, 'new_model') if save_path == 'auto' else save_path
     os.makedirs(save_path, exist_ok=True)
     logger.info(f'After expanding the vocabulary, the new model will be saved to {save_path}.')
