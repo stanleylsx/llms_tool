@@ -148,6 +148,14 @@ class Template:
             self.prompt = '问：{query}\n\n答：'
             self.sep = '\n\n'
             self.use_history = True
+        elif self.prompt_template == 'chatglm3':
+            r"""
+            Supports: https://huggingface.co/THUDM/chatglm3-6b
+            """
+            self.prefix = ''
+            self.prompt = '<|user|>{query}<|assistant|>'
+            self.sep = ''
+            self.use_history = True
         elif self.prompt_template == 'moss':
             r"""
             Supports: https://huggingface.co/fnlp/moss-moon-003-sft

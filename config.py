@@ -48,7 +48,7 @@ class ModelArguments:
         }
     )
     model_path: str = field(
-        default='/home/llm_models/ChatGLM/ChatGLM2-6B-32k',
+        default='/home/llm_models/ChatGLM/ChatGLM3-6B',
         metadata={
             # 从huggingface.co/models上下载的模型保存到本地的路径。
             'help': 'Local path to pretrained model or model identifier from huggingface.co/models.'
@@ -230,7 +230,7 @@ class DataTrainingArguments:
             'help': 'Which template to use for constructing prompts in training and inference.',
             'choices': ['default', 'alpaca', 'vicuna', 'belle', 'linly', 'billa', 'ziya', 'aquila',
                         'firefly', 'openbuddy', 'internlm', 'baichuan', 'baichuan2', 'chatglm', 'qwen', 'moss',
-                        'linksoul', 'xverse', 'tigerbot', 'flagalpha']
+                        'linksoul', 'xverse', 'tigerbot', 'flagalpha', 'chatglm3']
         }
     )
     overwrite_cache: Optional[bool] = field(
