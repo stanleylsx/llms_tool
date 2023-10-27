@@ -70,6 +70,9 @@ class DataManager:
             gen_kwargs['eos_token_id'] = stop_token_ids
         elif self.model_args.model_type == 'falcon':
             gen_kwargs['pad_token_id'] = self.tokenizer.eos_token_id
+        if self.data_args.prompt_template == 'chatglm3':
+            stop_token_ids = [2, 64795, 64797]
+            gen_kwargs['eos_token_id'] = stop_token_ids
         gen_kwargs['logits_processor'] = logits_processor()
         return gen_kwargs
 
