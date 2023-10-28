@@ -262,9 +262,9 @@ class DataTrainingArguments:
         }
     )
     corpus_path_for_expansion: Optional[str] = field(
-        default='datasets/pretrain/example/train',
+        default='datasets/expand_vocab',
         metadata={
-            # 用于扩充词表的语料所在路径。
+            # 用于扩充词表的语料所在路径，必须是【包含文本的路径】或【单个文本】
             'help': "The corpus path for vocab's expansion."
         }
     )
@@ -663,6 +663,16 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         metadata={
             # 指定输入句子的最大长度，以字节为单位
             'help': 'Specifies the maximum length of the input sentence(in bytes).'
+        }
+    )
+    expand_mode: Optional[str] = field(
+        default="inject",
+        metadata={
+            # 决定扩充词表的方式
+            # inject: 直接注入一个分隔好的词表 txt/tsv 文件，每个词占一行
+            # train: 从一个语料文本训练词表
+            'help': 'Ways to expand the vocabulary.',
+            'choices': ['inject', 'train']
         }
     )
 
