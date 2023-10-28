@@ -9,7 +9,6 @@ import os
 import shutil
 import sentencepiece as sp
 from transformers import AutoTokenizer, AutoModel
-from tokenizers import AddedToken
 
 
 cur_dir = os.path.dirname(os.path.abspath(__file__))
@@ -68,7 +67,7 @@ def add_new_tokens(logger, tokenizer, save_path):
     raw_vocab = [sp_bpe.id_to_piece(id) for id in range(sp_bpe.get_piece_size())]
     clean_vocab = list(set(filter(is_chinese, raw_vocab)))
 
-    tokenizer.add_tokens([AddedToken(token, normalized=False) for token in clean_vocab])
+    tokenizer.add_tokens(clean_vocab)
     tokenizer.save_pretrained(save_path)
     logger.info(f'New tokens added, new tokenizer is saved to {save_path}.')
 
@@ -87,6 +86,24 @@ def resize_embedding(logger, model, tokenizer_length, save_path):
     logger.info(f'Embedding resized, new model is saved to {save_path}.')
 
 
+# 直接注入新词表
+def inject_vocab(logger, tokenizer, save_path, corpus_list):
+    logger.info('Start injecting new vocabulary.')
+
+    all_words = []
+    for file in corpus_list:
+        with open(file, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        words = [line.strip() for line in lines]
+        all_words.extend(words)
+
+    tokenizer.add_tokens(all_words)
+    tokenizer.save_pretrained(save_path)
+    logger.info(f'New vocabulary injected, new tokenizer is saved to {save_path}.')
+
+    return len(tokenizer)
+
+
 # 入口函数
 def expand_vocab(logger,
                  model_path,
@@ -97,7 +114,12 @@ def expand_vocab(logger,
                  args
                  ):
     logger.info(f'Load base tokenizer from {model_path}.')
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_path,
+        trust_remote_code=True,
+        # LLaMA 不用 TokenizerFast，表现有差异
+        use_fast=False if model_arch == 'llama' else True
+    )
 
     logger.info(f'Load base model from {model_path}'.capitalize)
     model = AutoModel.from_pretrained(
@@ -110,34 +132,38 @@ def expand_vocab(logger,
     os.makedirs(save_path, exist_ok=True)
     logger.info(f'After expanding the vocabulary, the new model will be saved to {save_path}.')
 
-    train_vocab(
-        logger,
-        save_path,
-        process_corpus(corpus_path),
-        model_arch,
-        args.vocab_size,
-        args.max_sentence_length
-    )
-    tokenizer_length = add_new_tokens(logger, tokenizer, save_path)
+    corpus_list = process_corpus(corpus_path)
+    if args.expand_mode == 'inject':
+        tokenizer_length = inject_vocab(logger, tokenizer, save_path, corpus_list)
+    else:
+        train_vocab(
+            logger,
+            save_path,
+            corpus_list,
+            model_arch,
+            args.vocab_size,
+            args.max_sentence_length
+        )
+        tokenizer_length = add_new_tokens(logger, tokenizer, save_path)
     resize_embedding(logger, model, tokenizer_length, save_path)
     logger.info('The vocabulary was successfully expanded.')
 
 
 def process_corpus(corpus_path):
+    ret_list = []
     if not os.path.isdir(corpus_path):
         if not corpus_path.endswith('.txt') and not corpus_path.endswith('.tsv'):
             raise ValueError('Only .txt or .tsv files are supported.')
         else:
-            return corpus_path
+            ret_list.append(corpus_path)
     else:
         file_list = os.listdir(corpus_path)
-        ret_list = []
         for file in file_list:
             if not file.endswith('.txt') and not corpus_path.endswith('.tsv'):
                 raise ValueError('Only .txt or .tsv files are supported.')
             else:
                 ret_list.append(os.path.join(corpus_path, file))
-        return ret_list
+    return ret_list
 
 
 def is_chinese_char(cp):
