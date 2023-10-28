@@ -9,7 +9,6 @@ import os
 import shutil
 import sentencepiece as sp
 from transformers import AutoTokenizer, AutoModel
-from tokenizers import AddedToken
 
 
 cur_dir = os.path.dirname(os.path.abspath(__file__))
@@ -68,7 +67,7 @@ def add_new_tokens(logger, tokenizer, save_path):
     raw_vocab = [sp_bpe.id_to_piece(id) for id in range(sp_bpe.get_piece_size())]
     clean_vocab = list(set(filter(is_chinese, raw_vocab)))
 
-    tokenizer.add_tokens([AddedToken(token, normalized=False) for token in clean_vocab])
+    tokenizer.add_tokens(clean_vocab)
     tokenizer.save_pretrained(save_path)
     logger.info(f'New tokens added, new tokenizer is saved to {save_path}.')
 
@@ -98,7 +97,7 @@ def inject_vocab(logger, tokenizer, save_path, corpus_list):
         words = [line.strip() for line in lines]
         all_words.extend(words)
 
-    tokenizer.add_tokens([AddedToken(token, normalized=False) for token in all_words])
+    tokenizer.add_tokens(all_words)
     tokenizer.save_pretrained(save_path)
     logger.info(f'New vocabulary injected, new tokenizer is saved to {save_path}.')
 
@@ -115,7 +114,12 @@ def expand_vocab(logger,
                  args
                  ):
     logger.info(f'Load base tokenizer from {model_path}.')
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_path,
+        trust_remote_code=True,
+        # LLaMA 不用 TokenizerFast，表现有差异
+        use_fast=False if model_arch == 'llama' else True
+    )
 
     logger.info(f'Load base model from {model_path}'.capitalize)
     model = AutoModel.from_pretrained(
