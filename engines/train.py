@@ -32,7 +32,6 @@ class Train(BaseModels):
             self.lora_target_modules = [target.strip() for target in self.training_args.lora_target.split(',')]
         assert self.training_args.fine_tuning_type in [
             'lora', 'full', 'adalora', 'prompt_tuning', 'p_tuning', 'prefix_tuning'], 'Invalid fine-tuning method.'
-        self.qlora = False
         self.logger = logger
         self.metrics = Metrics(data_manager, logger)
 
@@ -55,7 +54,8 @@ class Train(BaseModels):
                     raise ValueError('Quantization CPM does not support qlora train.')
                 self.logger.info('Fine tuning type: qlora')
                 self.logger.info('Adapter qlora training.')
-                self.qlora = True
+                # https://github.com/stanleylsx/llms_tool/pull/71
+                # Set the target_modules of QLoRA to all linear layers, which is implemented based on the QLoRA source code.
                 target_modules = self.find_all_linear_names(model)
             else:
                 self.logger.info('Fine tuning type: lora')
@@ -78,7 +78,8 @@ class Train(BaseModels):
                 if self.model_args.quantization == 'cpm':
                     raise ValueError('Quantization CPM does not support qlora train.')
                 self.logger.info('Fine tuning type: qlora with qadalora')
-                self.qlora = True
+                # https://github.com/stanleylsx/llms_tool/pull/71
+                # Set the target_modules of QLoRA to all linear layers, which is implemented based on the QLoRA source code.
                 target_modules = self.find_all_linear_names(model)
             else:
                 self.logger.info('Adapter qadalora training.')
