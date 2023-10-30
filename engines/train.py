@@ -97,7 +97,7 @@ class Train(BaseModels):
                 tinit=self.training_args.adalora_tinit,
                 tfinal=self.training_args.adalora_tfinal,
                 deltaT=self.training_args.adalora_delta_t,
-                target_modules=self.lora_target_modules,
+                target_modules=target_modules,
             )
             model = get_peft_model(model, peft_config)
             model.print_trainable_parameters()
