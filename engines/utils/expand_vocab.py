@@ -127,7 +127,7 @@ def expand_vocab(logger,
         trust_remote_code=True,
         torch_dtype=torch_dtype
     )
-    
+
     save_path = os.path.join(model_path, 'new_model') if save_path == 'auto' else save_path
     os.makedirs(save_path, exist_ok=True)
     logger.info(f'After expanding the vocabulary, the new model will be saved to {save_path}.')

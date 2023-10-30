@@ -4,8 +4,6 @@
 # @Email : gzlishouxian@gmail.com
 # @File : models.py
 # @Software: PyCharm
-from transformers import AutoModel, LlamaForCausalLM, BloomForCausalLM, AutoModelForCausalLM, RwkvForCausalLM, FalconForCausalLM
-from transformers import MistralForCausalLM
 from transformers import BitsAndBytesConfig
 from transformers import PreTrainedModel
 from transformers.generation.utils import GenerationConfig
@@ -71,20 +69,19 @@ class BaseModels:
     def use_ntk_to_expend_input_token_length(self, model):
         ntk_type = self.model_args.use_ntk
         max_input_token = self.data_manager.data_args.max_input_token
-        if isinstance(model, LlamaForCausalLM):
-            if max_input_token > (max_position_embeddings := getattr(model.config, 'max_position_embeddings', None)):
-                factor = math.ceil(max_input_token / max_position_embeddings)
-                match ntk_type:
-                    case 'dynamic':
-                        # https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L147
-                        model.config.rope_scaling = {'type': 'dynamic', 'factor': factor}
-                    case 'linear':
-                        # https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L128
-                        model.config.rope_scaling = {'type': 'linear', 'factor': factor}
-            else:
-                self.logger.warning('Current model support the length you set.')
-            return model
         match self.model_args.model_type:
+            case 'llama':
+                if max_input_token > (max_position_embeddings := getattr(model.config, 'max_position_embeddings', None)):
+                    factor = math.ceil(max_input_token / max_position_embeddings)
+                    match ntk_type:
+                        case 'dynamic':
+                            # https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L147
+                            model.config.rope_scaling = {'type': 'dynamic', 'factor': factor}
+                        case 'linear':
+                            # https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/modeling_llama.py#L128
+                            model.config.rope_scaling = {'type': 'linear', 'factor': factor}
+                else:
+                    self.logger.warning('Current model support the length you set.')
             case 'chatglm':
                 if ntk_type == 'linear':
                     if (rope_ratio := getattr(model.config, 'rope_ratio', None)) is not None:
@@ -164,15 +161,36 @@ class BaseModels:
         if self.model_args.use_flash_attn:
             config_kwargs['use_flash_attention_2'] = True
 
+        if self.model_args.use_attention_sink:
+            if self.model_args.model_type not in ('falcon', 'mistral', 'qwen', 'llama'):
+                self.logger.warning(f'Window attention is not supported for {self.model_args.model_type}')
+            else:
+                config_kwargs['attention_sink_size'] = self.model_args.attention_sink_size
+                config_kwargs['attention_sink_window_size'] = self.model_args.attention_sink_window_size
+
         if self.model_args.model_type == 'chatglm':
+            from transformers import AutoModel
             model = AutoModel.from_pretrained(model_to_load, trust_remote_code=True, **config_kwargs)
         elif self.model_args.model_type == 'falcon':
+            if self.model_args.use_attention_sink:
+                from attention_sinks import FalconForCausalLM
+            else:
+                from transformers import FalconForCausalLM
             model = FalconForCausalLM.from_pretrained(model_to_load, **config_kwargs)
         elif self.model_args.model_type == 'mistral':
+            if self.model_args.use_attention_sink:
+                from attention_sinks import MistralForCausalLM
+            else:
+                from transformers import MistralForCausalLM
             model = MistralForCausalLM.from_pretrained(model_to_load, **config_kwargs)
         elif self.model_args.model_type in ['baichuan', 'aquila', 'internlm', 'moss', 'xverse']:
+            from transformers import AutoModelForCausalLM
             model = AutoModelForCausalLM.from_pretrained(model_to_load, trust_remote_code=True, **config_kwargs)
         elif self.model_args.model_type == 'qwen':
+            if self.model_args.use_attention_sink:
+                from attention_sinks import AutoModelForCausalLM
+            else:
+                from transformers import AutoModelForCausalLM
             match self.model_args.torch_dtype:
                 case torch.float16:
                     config_kwargs['fp16'] = True
@@ -183,10 +201,16 @@ class BaseModels:
             model = AutoModelForCausalLM.from_pretrained(model_to_load, trust_remote_code=True, **config_kwargs)
             model.generate = MethodType(PreTrainedModel.generate, model)
         elif self.model_args.model_type == 'rwkv':
+            from transformers import RwkvForCausalLM
             model = RwkvForCausalLM.from_pretrained(model_to_load, **config_kwargs)
         elif self.model_args.model_type == 'llama':
+            if self.model_args.use_attention_sink:
+                from attention_sinks import LlamaForCausalLM
+            else:
+                from transformers import LlamaForCausalLM
             model = LlamaForCausalLM.from_pretrained(model_to_load, **config_kwargs)
         elif self.model_args.model_type == 'bloom':
+            from transformers import BloomForCausalLM
             model = BloomForCausalLM.from_pretrained(model_to_load, **config_kwargs)
         else:
             raise
