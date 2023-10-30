@@ -515,7 +515,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
         }
     )
     noise_alpha: Optional[float] = field(
-        default=5,
+        default=0,
         metadata={
             # 使用NEFTune对模型进行Noise Tune，https://arxiv.org/abs/2310.05914
             'help': 'Whether to use Noisy Embedding Fine Tuning, if you want using it, set noise_alpha > 0.'

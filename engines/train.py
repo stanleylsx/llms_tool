@@ -18,6 +18,7 @@ from transformers import Trainer
 from config import TrainingArguments
 from trl import AutoModelForCausalLMWithValueHead, PPOConfig, set_seed
 from tqdm import tqdm
+import bitsandbytes as bnb
 import torch
 import math
 import os
@@ -35,6 +36,21 @@ class Train(BaseModels):
         self.qlora = False
         self.logger = logger
         self.metrics = Metrics(data_manager, logger)
+
+    def find_all_linear_names(self, args, model):
+        bits = args.quantization_bit
+        cls = bnb.nn.Linear4bit if bits == 4 \
+            else (bnb.nn.Linear8bitLt if bits == 8 else torch.nn.Linear)
+        lora_module_names = set()
+        for name, module in model.named_modules():
+            if isinstance(module, cls):
+                names = name.split('.')
+                lora_module_names.add(names[0] if len(names) == 1 else names[-1])
+
+        if 'lm_head' in lora_module_names:      # needed for 16-bit
+            lora_module_names.remove('lm_head')
+        self.logger.info(lora_module_names)
+        return list(lora_module_names)
 
     def construct_base_model(self, model):
         self.logger.info(f'Fine tuning type: {self.training_args.fine_tuning_type}')
@@ -57,6 +73,10 @@ class Train(BaseModels):
                 if self.model_args.quantization == 'cpm':
                     raise ValueError('Quantization CPM does not support qlora train.')
                 self.logger.info('Adapter qlora training.')
+            if self.qlora:
+                target_modules = self.find_all_linear_names(self.model_args, model)
+            else:
+                target_modules = self.lora_target_modules
             peft_config = LoraConfig(
                 task_type=TaskType.CAUSAL_LM,
                 inference_mode=False,
@@ -64,7 +84,7 @@ class Train(BaseModels):
                 lora_alpha=self.training_args.lora_alpha,
                 lora_dropout=self.training_args.lora_dropout,
                 bias=self.training_args.lora_bias,
-                target_modules=self.lora_target_modules,
+                target_modules=target_modules,
             )
             model = get_peft_model(model, peft_config)
             model.print_trainable_parameters()
