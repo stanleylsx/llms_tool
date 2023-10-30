@@ -40,14 +40,14 @@ def infer_chatglm_device_map(model):
     # 如果transformer.word_embeddings.device和model.device不同,则会导致RuntimeError
     # 因此这里将transformer.word_embeddings,transformer.final_layernorm,lm_head都放到第一张卡上
     # 本文件来源于https://github.com/THUDM/ChatGLM-6B/blob/main/utils.py
-    # 仅此处做少许修改以支持ChatGLM2
-    chatglm2 = False
+    # 仅此处做少许修改以支持ChatGLM2和ChatGLM3
+    chatglm2and3 = False
     for key, _ in model.named_modules():
         if key.endswith('rotary_pos_emb'):
-            chatglm2 = True
+            chatglm2and3 = True
             break
 
-    if chatglm2:
+    if chatglm2and3:
         device_map = {
             'transformer.embedding.word_embeddings': 0,
             'transformer.encoder.final_layernorm': 0,
@@ -69,7 +69,7 @@ def infer_chatglm_device_map(model):
             gpu_target += 1
             used = 0
         assert gpu_target < num_gpus
-        if chatglm2:
+        if chatglm2and3:
             device_map[f'transformer.encoder.layers.{i}'] = gpu_target
         else:
             device_map[f'transformer.layers.{i}'] = gpu_target

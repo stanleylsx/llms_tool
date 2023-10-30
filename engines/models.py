@@ -17,6 +17,7 @@ from engines.utils.expand_vocab import expand_vocab
 from peft.utils import CONFIG_NAME, WEIGHTS_NAME
 from peft import PeftModel
 from types import MethodType
+import bitsandbytes as bnb
 import os
 import math
 import torch
@@ -142,12 +143,16 @@ class BaseModels:
                     device_map = {'': int(os.environ['LOCAL_RANK'])}
                     config_kwargs['device_map'] = device_map
                 else:
-                    config_kwargs['device_map'] = 'auto'
+                    if self.model_args.model_type != 'chatglm':
+                        # auto dispatch model except chatglm
+                        config_kwargs['device_map'] = 'auto'
+                        dispatched = True
                 self.logger.info('Quantifying(bnb) model to {} bit.'.format(self.model_args.quantization_bit))
             elif self.model_args.quantization == 'cpm':
                 self.logger.info('Quantifying(cpm) model to {} bit.'.format(self.model_args.quantization_bit))
         else:
             if not self.is_deepspeed_train and self.model_args.model_type != 'chatglm':
+                # auto dispatch model except chatglm
                 config_kwargs['device_map'] = 'auto'
                 dispatched = True
 
@@ -223,12 +228,33 @@ class BaseModels:
         else:
             return None, None
 
-    def quantize(self, model, bits, device=None):
-        for key, module in model.named_modules():
-            if isinstance(module, torch.nn.Linear):
-                if key in ('lm_head', 'embed_out', 'output_layer'):
+    def find_all_linear_names(self, model):
+        match self.model_args.quantization_bit:
+            case 4:
+                cls = bnb.nn.Linear4bit
+            case 8:
+                cls = bnb.nn.Linear8bitLt
+            case _:
+                cls = torch.nn.Linear
+        lora_module_names = set()
+        for name, module in model.named_modules():
+            if isinstance(module, cls):
+                names = name.split('.')
+                # needed for 16-bit
+                last_name = names[-1]
+                if last_name in ('lm_head', 'embed_out', 'output_layer'):
                     continue
-                super_module, leaf_module = self.get_module_by_name(model, key)
+                lora_module_names.add(names[0] if len(names) == 1 else last_name)
+        return list(lora_module_names)
+
+    def quantize(self, model, bits, device=None):
+        for name, module in model.named_modules():
+            if isinstance(module, torch.nn.Linear):
+                names = name.split('.')
+                last_name = names[-1]
+                if last_name in ('lm_head', 'embed_out', 'output_layer'):
+                    continue
+                super_module, leaf_module = self.get_module_by_name(model, name)
                 quantized_liner = QuantizedLinear(
                     weight_bit_width=bits,
                     weight=leaf_module.weight.to(torch.cuda.current_device()),
@@ -236,7 +262,7 @@ class BaseModels:
                     dtype=leaf_module.weight.dtype,
                     device=leaf_module.weight.device if device is None else device,
                 )
-                setattr(super_module, key.split('.')[-1], quantized_liner)
+                setattr(super_module, last_name, quantized_liner)
         return model
 
     def save_quantized_model(self):

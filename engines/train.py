@@ -18,7 +18,6 @@ from transformers import Trainer
 from config import TrainingArguments
 from trl import AutoModelForCausalLMWithValueHead, PPOConfig, set_seed
 from tqdm import tqdm
-import bitsandbytes as bnb
 import torch
 import math
 import os
@@ -37,24 +36,9 @@ class Train(BaseModels):
         self.logger = logger
         self.metrics = Metrics(data_manager, logger)
 
-    def find_all_linear_names(self, args, model):
-        bits = args.quantization_bit
-        cls = bnb.nn.Linear4bit if bits == 4 \
-            else (bnb.nn.Linear8bitLt if bits == 8 else torch.nn.Linear)
-        lora_module_names = set()
-        for name, module in model.named_modules():
-            if isinstance(module, cls):
-                names = name.split('.')
-                lora_module_names.add(names[0] if len(names) == 1 else names[-1])
-
-        if 'lm_head' in lora_module_names:      # needed for 16-bit
-            lora_module_names.remove('lm_head')
-        self.logger.info(lora_module_names)
-        return list(lora_module_names)
-
     def construct_base_model(self, model):
-        self.logger.info(f'Fine tuning type: {self.training_args.fine_tuning_type}')
         if self.training_args.fine_tuning_type == 'full':
+            self.logger.info(f'Fine tuning type: {self.training_args.fine_tuning_type}')
             if self.model_args.quantization_bit is not None:
                 raise ValueError('Full-parameter fine-tuning does not support quantization.')
             self.logger.info('Full-parameters training.')
@@ -66,17 +50,17 @@ class Train(BaseModels):
             print_trainable_parameters(model, logger=self.logger)
         elif self.training_args.fine_tuning_type == 'lora':
             self.logger.info('Init new peft model.')
-            if self.model_args.quantization_bit is None:
-                self.logger.info('Adapter lora training.')
-                self.qlora = True
-            else:
+            if self.model_args.quantization_bit is not None:
                 if self.model_args.quantization == 'cpm':
                     raise ValueError('Quantization CPM does not support qlora train.')
+                self.logger.info('Fine tuning type: qlora')
                 self.logger.info('Adapter qlora training.')
-            if self.qlora:
-                target_modules = self.find_all_linear_names(self.model_args, model)
+                self.qlora = True
+                target_modules = self.find_all_linear_names(model)
             else:
+                self.logger.info('Fine tuning type: lora')
                 target_modules = self.lora_target_modules
+            self.logger.info(f'Target liners for lora: {target_modules}')
             peft_config = LoraConfig(
                 task_type=TaskType.CAUSAL_LM,
                 inference_mode=False,
@@ -90,13 +74,16 @@ class Train(BaseModels):
             model.print_trainable_parameters()
         elif self.training_args.fine_tuning_type == 'adalora':
             self.logger.info('Init new peft model.')
-            if self.model_args.quantization_bit is None:
-                self.logger.info('Adapter adalora training.')
-                self.qlora = True
-            else:
+            if self.model_args.quantization_bit is not None:
                 if self.model_args.quantization == 'cpm':
                     raise ValueError('Quantization CPM does not support qlora train.')
+                self.logger.info('Fine tuning type: qlora with qadalora')
+                self.qlora = True
+                target_modules = self.find_all_linear_names(model)
+            else:
                 self.logger.info('Adapter qadalora training.')
+                target_modules = self.lora_target_modules
+            self.logger.info(f'Target liners for lora: {target_modules}')
             peft_config = AdaLoraConfig(
                 task_type=TaskType.CAUSAL_LM,
                 inference_mode=False,
