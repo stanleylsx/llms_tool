@@ -94,7 +94,7 @@ class BaseModels:
                         else:
                             self.logger.warning('Current model support the length you set.')
                     else:
-                        self.logger.warning('Only chatglm2-6b-32k support expend input token length.')
+                        self.logger.warning('Only chatglm2-6b-32k and chatglm3-6b-32k support expend input token length.')
                 else:
                     self.logger.warning('Native ChatGLM can not support dynamic NTK.')
             case 'qwen':
