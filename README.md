@@ -14,6 +14,7 @@
 ## Updates
 Date| Detail
 :---|---
+2023-10-30|通过attention_sinks支持[StreamingLLM](https://arxiv.org/abs/2309.17453)
 2023-10-25|基于sentencepiece实现词表扩充功能
 2023-10-24|支持使用[NEFTune](https://arxiv.org/abs/2310.05914)对LLM进行noise tune
 2023-10-09|增加扩充词表后Embedding初始化方式
@@ -67,6 +68,7 @@ Mistral  | 7B           |[Mistral](https://huggingface.co/mistralai/Mistral-7B-I
 Template Prompt|Website
 :--------------|---------
 chatglm        | [chatglm2](https://huggingface.co/THUDM/chatglm2-6b)  
+chatglm        | [chatglm3](https://huggingface.co/THUDM/chatglm3-6b)  
 alpaca         | [Chinese-LLaMA-Alpaca](https://github.com/ymcui/Chinese-LLaMA-Alpaca)
 vicuna         | [Chinese-Vicuna](https://github.com/Facico/Chinese-Vicuna)
 belle          | [BELLE](https://github.com/LianjiaTech/BELLE)
@@ -348,14 +350,14 @@ DPO方法对模型进行强化学习训练的数据和奖励模型的数据是�
 
 Arguments                    | Describe                | 
 :----------------------------|-------------------------|
-fine_tuning_type             | 训练方式                  |
-use_firefly_loss             | 使用Firefly loss训练模型   |
-output_dir                   | 训练结果输出的文件夹        |
-num_train_epochs             | 训练的轮次                 |
-gradient_accumulation_steps  | 梯度累积                   |
-per_device_train_batch_size  | 每个设备上的批大小           |
-learning_rate                | 学习率                    |
-fp16                         | 设置True为开混合精度运算     |
+fine_tuning_type             | 训练方式                 |
+use_firefly_loss             | 使用Firefly loss训练模型 |
+output_dir                   | 训练结果输出的文件夹      |
+num_train_epochs             | 训练的轮次               |
+gradient_accumulation_steps  | 梯度累积                 |
+per_device_train_batch_size  | 每个设备上的批大小        |
+learning_rate                | 学习率                   |
+fp16                         | 设置True为开混合精度运算  |
 
 
 * Lora和其它adapter训练方式的配置参数也在TrainingArguments中，这里面要注意lora_target的设置要根据自己的模型结构来，配置中给了一些参考。

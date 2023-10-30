@@ -101,6 +101,32 @@ class ModelArguments:
             'help': 'Whether to use Flash attention.',
         }
     )
+    use_attention_sink: Optional[bool] = field(
+        default=True,
+        metadata={
+            # 使用StreamingLLM中的window attention
+            # 目前支持falcon, mistral, qwen, llama
+            'help': 'Whether to use window attention(Streaming LLM).',
+        }
+    )
+    attention_sink_size: Optional[int] = field(
+        default=4,
+        metadata={
+            # 该参数在使用StreamingLLM生效
+            # 用作注意力的初始token数量。这些token始终包含在注意力的KV缓存中。
+            'help': 'The number of initial tokens to use as the attention sink. '
+                    'These tokens are always included in the Attention Sink KV Cache.',
+        }
+    )
+    attention_sink_window_size: Optional[int] = field(
+        default=1020,
+        metadata={
+            # 使用StreamingLLM生效
+            # 该参数在滑动窗口的大小，即在注意力KV缓存中包含的“最近token”的数量。较大的窗口大小会消耗更多的内存。
+            'help': 'The size of the sliding window, i.e. the number of "recent tokens" to include in the Attention Sink KV Cache. '
+                    'A larger window size costs more memory.',
+        }
+    )
     resize_emb: Optional[str] = field(
         default=None,
         metadata={
