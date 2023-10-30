@@ -159,7 +159,10 @@ class BaseModels:
             model_to_load = self.model_args.model_path
 
         if self.model_args.use_flash_attn:
-            config_kwargs['use_flash_attention_2'] = True
+            if self.model_args.model_type not in ('falcon', 'mistral', 'llama'):
+                self.logger.warning(f'Flash attention is not supported for {self.model_args.model_type}')
+            else:
+                config_kwargs['use_flash_attention_2'] = True
 
         if self.model_args.use_attention_sink:
             if self.model_args.model_type not in ('falcon', 'mistral', 'qwen', 'llama'):
