@@ -102,7 +102,7 @@ class ModelArguments:
         }
     )
     use_attention_sink: Optional[bool] = field(
-        default=True,
+        default=False,
         metadata={
             # 使用StreamingLLM中的window attention
             # 目前支持falcon, mistral, qwen, llama
