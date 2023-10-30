@@ -241,18 +241,18 @@ class BaseModels:
             if isinstance(module, cls):
                 names = name.split('.')
                 # needed for 16-bit
-                last_name = names[-1]
-                if last_name in ('lm_head', 'embed_out', 'output_layer'):
+                leaf_name = names[-1]
+                if leaf_name in ('lm_head', 'embed_out', 'output_layer'):
                     continue
-                lora_module_names.add(names[0] if len(names) == 1 else last_name)
+                lora_module_names.add(names[0] if len(names) == 1 else leaf_name)
         return list(lora_module_names)
 
     def quantize(self, model, bits, device=None):
         for name, module in model.named_modules():
             if isinstance(module, torch.nn.Linear):
                 names = name.split('.')
-                last_name = names[-1]
-                if last_name in ('lm_head', 'embed_out', 'output_layer'):
+                leaf_name = names[-1]
+                if leaf_name in ('lm_head', 'embed_out', 'output_layer'):
                     continue
                 super_module, leaf_module = self.get_module_by_name(model, name)
                 quantized_liner = QuantizedLinear(
@@ -262,7 +262,7 @@ class BaseModels:
                     dtype=leaf_module.weight.dtype,
                     device=leaf_module.weight.device if device is None else device,
                 )
-                setattr(super_module, last_name, quantized_liner)
+                setattr(super_module, leaf_name, quantized_liner)
         return model
 
     def save_quantized_model(self):
