@@ -94,6 +94,18 @@ class BaseModels:
                         self.logger.warning('Only chatglm2-6b-32k and chatglm3-6b-32k support expend input token length.')
                 else:
                     self.logger.warning('Native ChatGLM can not support dynamic NTK.')
+            case 'aquila':
+                if max_input_token > (max_position_embeddings := getattr(model.config, 'max_position_embeddings', None)):
+                    factor = math.ceil(max_input_token / max_position_embeddings)
+                    match ntk_type:
+                        case 'dynamic':
+                            # https://huggingface.co/BAAI/AquilaChat2-7B-16K/blob/main/modeling_aquila.py#L148
+                            model.config.rope_scaling = {'type': 'dynamic', 'factor': factor}
+                        case 'linear':
+                            # https://huggingface.co/BAAI/AquilaChat2-7B-16K/blob/main/modeling_aquila.py#L129
+                            model.config.rope_scaling = {'type': 'linear', 'factor': factor}
+                else:
+                    self.logger.warning('Only AquilaChat2-7B-16K support expend input token length.')
             case 'qwen':
                 if ntk_type == 'dynamic':
                     # https://huggingface.co/Qwen/Qwen-7B-Chat/blob/main/modeling_qwen.py#L1165

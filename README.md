@@ -55,6 +55,7 @@ Baichuan | 7B、13B      |[baichuan](https://huggingface.co/baichuan-inc)
 Baichuan2| 7B、13B      |[baichuan2](https://huggingface.co/baichuan-inc)
 Falcon   | 7B           |[falcon](https://huggingface.co/tiiuae/falcon-7b)、[chinese-Falcon](https://huggingface.co/Linly-AI)
 Aquila   | 7B           |[aquila](https://huggingface.co/BAAI)
+Aquila2  | 7B           |[aquila](https://huggingface.co/BAAI)
 InternLM | 7B、20B      |[internlm](https://huggingface.co/internlm)
 MOSS     | 16B          |[MOSS](https://huggingface.co/fnlp)
 XVERSE   | 13B          |[XVERSE](https://huggingface.co/xverse/XVERSE-13B-Chat)
@@ -68,7 +69,7 @@ Mistral  | 7B           |[Mistral](https://huggingface.co/mistralai/Mistral-7B-I
 Template Prompt|Website
 :--------------|---------
 chatglm        | [chatglm2](https://huggingface.co/THUDM/chatglm2-6b)  
-chatglm        | [chatglm3](https://huggingface.co/THUDM/chatglm3-6b)  
+chatglm3       | [chatglm3](https://huggingface.co/THUDM/chatglm3-6b)  
 alpaca         | [Chinese-LLaMA-Alpaca](https://github.com/ymcui/Chinese-LLaMA-Alpaca)
 vicuna         | [Chinese-Vicuna](https://github.com/Facico/Chinese-Vicuna)
 belle          | [BELLE](https://github.com/LianjiaTech/BELLE)
