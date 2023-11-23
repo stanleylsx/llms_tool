@@ -94,6 +94,14 @@ class BaseModels:
                         self.logger.warning('Only chatglm2-6b-32k and chatglm3-6b-32k support expend input token length.')
                 else:
                     self.logger.warning('Native ChatGLM can not support dynamic NTK.')
+            case 'internlm':
+                if max_input_token > (max_position_embeddings := getattr(model.config, 'max_position_embeddings', None)):
+                    factor = math.ceil(max_input_token / max_position_embeddings)
+                    match ntk_type:
+                        case 'dynamic':
+                            model.config.rotary = {'base': 10000, 'type': 'dynamic', 'scaling_factor': factor}
+                        case 'linear':
+                            model.config.rotary = {'base': 10000, 'type': 'origin'}
             case 'aquila':
                 if max_input_token > (max_position_embeddings := getattr(model.config, 'max_position_embeddings', None)):
                     factor = math.ceil(max_input_token / max_position_embeddings)

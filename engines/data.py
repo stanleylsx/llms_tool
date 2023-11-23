@@ -7,7 +7,6 @@
 from transformers import AutoTokenizer, LlamaTokenizer, BloomTokenizerFast
 from transformers import DataCollatorWithPadding
 from engines.utils.prompt_template import Template
-from engines.utils.logits_process import logits_processor
 from datasets import load_dataset
 from itertools import chain
 from glob import glob
@@ -49,32 +48,15 @@ class DataManager:
         else:
             raise
 
-        if self.model_args.model_type == 'qwen':
-            tokenizer.eos_token_id = 151643
+        if tokenizer.eos_token_id is None:
             tokenizer.eos_token = '<|endoftext|>'
-            tokenizer.pad_token = tokenizer.eos_token
+            self.logger.info('Add eos token: {}'.format(tokenizer.eos_token))
         if tokenizer.pad_token_id is None:
-            tokenizer.pad_token_id = tokenizer.eos_token_id if tokenizer.eos_token_id is not None else 0
-
+            tokenizer.pad_token = tokenizer.eos_token
+            self.logger.info('Add pad token: {}'.format(tokenizer.pad_token))
+        tokenizer.add_special_tokens(dict(additional_special_tokens=self.prompt_template.stop_words),
+                                     replace_additional_special_tokens=False)
         return tokenizer
-
-    def generating_args_preprocess(self, gen_kwargs):
-        if self.model_args.model_type == 'aquila':
-            stop_token_ids = [8090, 100007]
-            gen_kwargs['eos_token_id'] = stop_token_ids
-        elif self.model_args.model_type == 'internlm':
-            stop_token_ids = [2, 103028]
-            gen_kwargs['eos_token_id'] = stop_token_ids
-        elif self.model_args.model_type == 'qwen':
-            stop_token_ids = [151643, 151645]
-            gen_kwargs['eos_token_id'] = stop_token_ids
-        elif self.model_args.model_type == 'falcon':
-            gen_kwargs['pad_token_id'] = self.tokenizer.eos_token_id
-        if self.data_args.prompt_template == 'chatglm3':
-            stop_token_ids = [2, 64795, 64797]
-            gen_kwargs['eos_token_id'] = stop_token_ids
-        gen_kwargs['logits_processor'] = logits_processor()
-        return gen_kwargs
 
     def load_datasets_from_files(self, test=False):
         data_files = {}

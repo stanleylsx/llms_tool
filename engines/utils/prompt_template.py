@@ -18,11 +18,7 @@ class Template:
                           "The assistant gives helpful, detailed, and polite answers to the user's questions."
             self.prompt = 'Human: {query}\nAssistant: '
             self.sep = '\n'
-            self.use_history = True
-        elif self.prompt_template is None:
-            self.prefix = ''
-            self.prompt = ''
-            self.sep = ''
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'vanilla':
             r"""
@@ -31,6 +27,7 @@ class Template:
             self.prefix = ''
             self.prompt = '{query}'
             self.sep = ''
+            self.stop_words = []
             self.use_history = False
         elif self.prompt_template == 'alpaca':
             r"""
@@ -41,6 +38,7 @@ class Template:
                           'Write a response that appropriately completes the request.'
             self.prompt = '### Instruction:\n{query}\n\n### Response:\n'
             self.sep = '\n\n'
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'vicuna':
             r"""
@@ -51,6 +49,7 @@ class Template:
                           "The assistant gives helpful, detailed, and polite answers to the user's questions."
             self.prompt = 'USER: {query} ASSISTANT: '
             self.sep = '</s>'
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'belle':
             r"""
@@ -59,6 +58,7 @@ class Template:
             self.prefix = ''
             self.prompt = 'Human: {query}\n\nBelle: '
             self.sep = '\n\n'
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'linly':
             r"""
@@ -67,14 +67,7 @@ class Template:
             self.prefix = ''
             self.prompt = 'User: {query}\nBot: '
             self.sep = '\n'
-            self.use_history = True
-        elif self.prompt_template == 'billa':
-            r"""
-            Supports: https://github.com/Neutralzz/BiLLa
-            """
-            self.prefix = ''
-            self.prompt = 'Human: {query}\nAssistant: '
-            self.sep = '\n'
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'ziya':
             r"""
@@ -83,6 +76,7 @@ class Template:
             self.prefix = ''
             self.prompt = '<human>:{query}\n<bot>:'
             self.sep = '\n'
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'aquila':
             r"""
@@ -92,6 +86,7 @@ class Template:
                           "he assistant gives helpful, detailed, and polite answers to the human's questions."
             self.prompt = 'Human: {query}###Assistant:'
             self.sep = '###'
+            self.stop_words = ['###', '[UNK]', '</s>']
             self.use_history = True
         elif self.prompt_template == 'firefly':
             r"""
@@ -100,6 +95,7 @@ class Template:
             self.prefix = ''
             self.prompt = '<s>{query}</s>'
             self.sep = ''
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'openbuddy':
             r"""
@@ -108,6 +104,7 @@ class Template:
             self.prefix = ''
             self.prompt = 'User: {query}\nAssistant:'
             self.sep = '\n'
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'yuyan':
             r"""
@@ -115,6 +112,7 @@ class Template:
             self.prefix = ''
             self.prompt = '<|Human|>:\n{query}\n\n<|Yuyan|>:\n'
             self.sep = '\n\n'
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'internlm':
             r"""
@@ -123,6 +121,7 @@ class Template:
             self.prefix = ''
             self.prompt = '<|User|>:{query}<eoh>\n<|Bot|>:'
             self.sep = '\n'
+            self.stop_words = ['<eoa>']
             self.use_history = True
         elif self.prompt_template == 'baichuan':
             r"""
@@ -131,6 +130,7 @@ class Template:
             self.prefix = ''
             self.prompt = '<reserved_102>{query}<reserved_103>'
             self.sep = ''
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'baichuan2':
             r"""
@@ -139,6 +139,7 @@ class Template:
             self.prefix = ''
             self.prompt = '<reserved_106>{query}<reserved_107>'
             self.sep = ''
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'chatglm':
             r"""
@@ -147,14 +148,16 @@ class Template:
             self.prefix = '[Round {}]'
             self.prompt = '问：{query}\n\n答：'
             self.sep = '\n\n'
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'chatglm3':
             r"""
             Supports: https://huggingface.co/THUDM/chatglm3-6b
             """
             self.prefix = ''
-            self.prompt = '<|user|>\n{query}\n<|assistant|>'
+            self.prompt = '<|user|>\n{query}\n<|assistant|>\n'
             self.sep = '\n'
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'moss':
             r"""
@@ -163,6 +166,7 @@ class Template:
             self.prefix = ''
             self.prompt = '<|Human|>: {query}<eoh>\n<|MOSS|>:'
             self.sep = '\n'
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'rwkv':
             r"""
@@ -171,6 +175,7 @@ class Template:
             self.prefix = ''
             self.prompt = 'Bob: {query}\n\nAlice:'
             self.sep = '\n\n'
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'linksoul':
             r"""
@@ -186,6 +191,7 @@ class Template:
                           "a question, please don't share false information.\n<</SYS>>\n\n"
             self.prompt = '{query}[/INST]'
             self.sep = '</s><s> [INST]'
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'qwen':
             r"""
@@ -194,6 +200,7 @@ class Template:
             self.prefix = '<|im_start|>system\nYou are a helpful assistant.'
             self.prompt = '<|im_start|>user\n{query}<|im_end|>\n<|im_start|>assistant\n'
             self.sep = '<|im_end|>\n'
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'xverse':
             r"""
@@ -202,6 +209,7 @@ class Template:
             self.prefix = ''
             self.prompt = 'Human: {query}\n\nAssistant: '
             self.sep = '\n\n'
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'tigerbot':
             r"""
@@ -210,6 +218,7 @@ class Template:
             self.prefix = ''
             self.prompt = 'Instruction:\n{query}\n\n### Response:\n'
             self.sep = '\n\n'
+            self.stop_words = []
             self.use_history = True
         elif self.prompt_template == 'flagalpha':
             r"""
@@ -218,6 +227,7 @@ class Template:
             self.prefix = ''
             self.prompt = '<s>Human:{query}\n<\\s><s>Assistant: '
             self.sep = '<\\s>'
+            self.stop_words = []
             self.use_history = True
         else:
             raise ValueError('Template {} does not exist.'.format(self.prompt_template))

@@ -8,6 +8,7 @@ from transformers import TextIteratorStreamer
 from engines.utils.parse_text import parse_text
 from engines.utils.metrics import Metrics
 from engines.models import BaseModels
+from engines.utils.logits_process import logits_processor
 from threading import Thread
 import gradio as gr
 import mdtex2html
@@ -36,7 +37,6 @@ class Predictor(BaseModels):
             input_ids = input_ids.to(self.model.device)
             streamer = TextIteratorStreamer(self.tokenizer, timeout=60.0, skip_prompt=True, skip_special_tokens=True)
             gen_kwargs = self.generating_args.to_dict()
-            gen_kwargs = self.data_manager.generating_args_preprocess(gen_kwargs)
             gen_kwargs.update({
                 'input_ids': input_ids,
                 'temperature': temperature,
@@ -46,6 +46,8 @@ class Predictor(BaseModels):
                 'max_new_tokens': max_new_tokens,
                 'num_beams': self.generating_args.num_beams,
                 'do_sample': self.generating_args.do_sample,
+                'eos_token_id': [self.tokenizer.eos_token_id] + self.tokenizer.additional_special_tokens_ids,
+                'logits_processor': logits_processor(),
                 'streamer': streamer
             })
 
@@ -116,9 +118,10 @@ class Predictor(BaseModels):
             input_ids = input_ids.to(self.model.device)
             streamer = TextIteratorStreamer(self.tokenizer, timeout=60.0, skip_prompt=True, skip_special_tokens=True)
             gen_kwargs = self.generating_args.to_dict()
-            gen_kwargs = self.data_manager.generating_args_preprocess(gen_kwargs)
             gen_kwargs.update({
                 'input_ids': input_ids,
+                'eos_token_id': [self.tokenizer.eos_token_id] + self.tokenizer.additional_special_tokens_ids,
+                'logits_processor': logits_processor(),
                 'streamer': streamer
             })
             thread = Thread(target=self.model.generate, kwargs=gen_kwargs)
