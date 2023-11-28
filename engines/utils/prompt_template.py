@@ -229,6 +229,15 @@ class Template:
             self.sep = '<\\s>'
             self.stop_words = []
             self.use_history = True
+        elif self.prompt_template == 'orca':
+            r"""
+            Supports: https://huggingface.co/microsoft/Orca-2-7b
+            """
+            self.prefix = 'You are Orca, an AI language model created by Microsoft. You are a cautious assistant. You carefully follow instructions. You are helpful and harmless and you follow ethical guidelines and promote positive behavior.'
+            self.prompt = '<|im_start|>user\n{query}<|im_end|>\n<|im_start|>assistant'
+            self.sep = '\n'
+            self.stop_words = []
+            self.use_history = True
         else:
             raise ValueError('Template {} does not exist.'.format(self.prompt_template))
 
