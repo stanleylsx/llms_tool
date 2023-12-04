@@ -155,8 +155,8 @@ class Template:
             Supports: https://huggingface.co/THUDM/chatglm3-6b
             """
             self.prefix = ''
-            self.prompt = '<|user|>\n{query}\n<|assistant|>\n'
-            self.sep = '\n'
+            self.prompt = '<|user|>\n{query}<|assistant|>\n'
+            self.sep = ''
             self.stop_words = ['<|user|>', '<|observation|>']
             self.use_history = True
         elif self.prompt_template == 'moss':
