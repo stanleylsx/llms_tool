@@ -670,6 +670,12 @@ class TrainingArguments(Seq2SeqTrainingArguments):
             'help': 'Number of training steps'
         }
     )
+    dpo_beta: Optional[float] = field(
+        default=0.1,
+        metadata={
+            'help': 'The beta factor in DPO loss. Higher beta means less divergence from the initial policy.'
+        }
+    )
     log_with: Optional[str] = field(
         default='wandb',
         metadata={
