@@ -440,7 +440,7 @@ class Train(BaseModels):
         dpo_trainer = DPOTrainer(
             ref_model=ref_model,
             model=model,
-            beta=0.1,
+            beta=self.training_args.dpo_beta,
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
             tokenizer=self.tokenizer,
