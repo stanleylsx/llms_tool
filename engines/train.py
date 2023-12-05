@@ -248,7 +248,7 @@ class Train(BaseModels):
             if self.training_args.do_eval and eval_dataset:
                 self.logger.info('*** Start evaluating. ***')
                 gen_kwargs = self.generating_args.to_dict()
-                gen_kwargs = self.data_manager.generating_args_preprocess(gen_kwargs)
+                gen_kwargs['eos_token_id'] = [self.tokenizer.eos_token_id] + self.tokenizer.additional_special_tokens_ids
                 metrics = trainer.evaluate(eval_dataset=eval_dataset, **gen_kwargs)
                 perplexity = math.exp(metrics['eval_loss'])
                 metrics['perplexity'] = perplexity
@@ -268,7 +268,7 @@ class Train(BaseModels):
                 compute_metrics=self.metrics.computer_supervised_fine_tuning_metric
             )
             gen_kwargs = self.generating_args.to_dict()
-            gen_kwargs = self.data_manager.generating_args_preprocess(gen_kwargs)
+            gen_kwargs['eos_token_id'] = [self.tokenizer.eos_token_id] + self.tokenizer.additional_special_tokens_ids
             self.logger.info('*** Start testing. ***')
             test_results = trainer.predict(test_dataset, metric_key_prefix='test', **gen_kwargs)
             metrics = test_results.metrics
@@ -392,7 +392,7 @@ class Train(BaseModels):
             data_collator=data_collator
         )
         gen_kwargs = self.generating_args.to_dict()
-        gen_kwargs = self.data_manager.generating_args_preprocess(gen_kwargs)
+        gen_kwargs['eos_token_id'] = [self.tokenizer.eos_token_id] + self.tokenizer.additional_special_tokens_ids
 
         total_steps = config.total_ppo_epochs
         for step, batch in tqdm(enumerate(ppo_trainer.dataloader)):
