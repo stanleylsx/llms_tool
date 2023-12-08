@@ -202,6 +202,15 @@ class Template:
             self.sep = '<|im_end|>\n'
             self.stop_words = []
             self.use_history = True
+        elif self.prompt_template == 'yi':
+            r"""
+            Supports: https://huggingface.co/01-ai/Yi-6B-Chat
+            """
+            self.prefix = ''
+            self.prompt = '<|im_start|>user\n{query}<|im_end|>\n<|im_start|>assistant\n'
+            self.sep = '<|im_end|>\n'
+            self.stop_words = []
+            self.use_history = True
         elif self.prompt_template == 'xverse':
             r"""
             Supports: https://huggingface.co/xverse/XVERSE-13B-Chat/

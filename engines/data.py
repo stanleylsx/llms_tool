@@ -31,7 +31,7 @@ class DataManager:
         self.use_firefly_loss = self.training_args.use_firefly_loss
 
     def load_tokenizer(self, model_path):
-        if self.model_args.model_type in ['chatglm', 'baichuan', 'internlm', 'aquila', 'moss', 'xverse', 'mistral']:
+        if self.model_args.model_type in ['chatglm', 'baichuan', 'internlm', 'aquila', 'moss', 'xverse', 'mistral', 'yi']:
             tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
         elif self.model_args.model_type == 'qwen':
             # https://github.com/QwenLM/Qwen/issues/24

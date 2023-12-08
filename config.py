@@ -44,7 +44,7 @@ class ModelArguments:
             # 模型类型
             'help': 'Model type.',
             'choices': ['chatglm', 'qwen', 'llama', 'falcon', 'baichuan', 'aquila',
-                        'internlm', 'moss', 'bloom', 'rwkv', 'xverse', 'mistral'],
+                        'internlm', 'moss', 'bloom', 'rwkv', 'xverse', 'mistral', 'yi'],
         }
     )
     model_path: str = field(
@@ -256,7 +256,7 @@ class DataTrainingArguments:
             'help': 'Which template to use for constructing prompts in training and inference.',
             'choices': ['default', 'alpaca', 'vicuna', 'belle', 'linly', 'ziya', 'aquila', 'firefly',
                         'openbuddy', 'internlm', 'baichuan', 'baichuan2', 'chatglm', 'qwen', 'moss',
-                        'linksoul', 'xverse', 'tigerbot', 'flagalpha', 'chatglm3', 'orca']
+                        'linksoul', 'xverse', 'tigerbot', 'flagalpha', 'chatglm3', 'orca', 'yi']
         }
     )
     overwrite_cache: Optional[bool] = field(
@@ -618,6 +618,7 @@ class TrainingArguments(Seq2SeqTrainingArguments):
             Baichuan choices: [\"W_pack\", \"o_proj\", \"gate_proj\", \"up_proj\", \"down_proj\"] \
             Qwen choices: [\"c_attn\", \"c_proj\", \"w1\", \"w2\"] \
             Xverse choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"] \
+            yi choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"] \
             Mistral choices: [\"q_proj\", \"k_proj\", \"v_proj\", \"o_proj\", \"gate_proj\", \"down_proj\", \"up_proj\"]"
         }
     )

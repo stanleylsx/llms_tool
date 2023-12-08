@@ -47,7 +47,7 @@ Model    | Scale        | Series
 ChatGLM1 | 6B           |[chatglm1](https://huggingface.co/THUDM/chatglm-6b)
 ChatGLM2 | 6B           |[chatglm2](https://huggingface.co/THUDM/chatglm2-6b)
 ChatGLM3 | 6B           |[chatglm3](https://huggingface.co/THUDM/chatglm3-6b)
-Qwen     | 7B、14B       |[Qwen](https://huggingface.co/Qwen)
+Qwen     | 1.8B、7B、14B |[Qwen](https://huggingface.co/Qwen)
 Bloom    | 560M、9B、7B1M|[bloom](https://huggingface.co/bigscience/bloom)、[bloomz](https://huggingface.co/bigscience/bloomz)
 LLama1   | 3B、7B、13B   |[openllama](https://huggingface.co/openlm-research)、[chinese-alpaca](https://github.com/ymcui/Chinese-LLaMA-Alpaca)、[ziya](https://huggingface.co/IDEA-CCNL)
 LLama2   | 7B、13B      |[llama2](https://huggingface.co/meta-llama)、[orca-2](https://huggingface.co/microsoft/Orca-2-7b)
@@ -60,6 +60,7 @@ InternLM | 7B、20B      |[internlm](https://huggingface.co/internlm)
 MOSS     | 16B          |[MOSS](https://huggingface.co/fnlp)
 XVERSE   | 13B          |[XVERSE](https://huggingface.co/xverse/XVERSE-13B-Chat)
 Mistral  | 7B           |[Mistral](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1)
+Yi       | 6B           |[Yi](https://huggingface.co/01-ai/Yi-6B-Chat)
 
 * 未进入上表的模型或参数规模暂时没有使用该项目测试过。
 
@@ -87,6 +88,7 @@ xverse         | [XVERSE](https://huggingface.co/xverse/XVERSE-13B-Chat)
 tigerbot       | [TigerBot](https://github.com/TigerResearch/TigerBot)
 flagalpha      | [FlagAlpha](https://github.com/FlagAlpha/Llama2-Chinese)
 orca-2         | [Orca-2](https://huggingface.co/microsoft/Orca-2-7b)
+yi             | [yi](https://huggingface.co/01-ai/Yi-6B-Chat)
 
 ### Training methods  
 

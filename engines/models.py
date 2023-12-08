@@ -206,7 +206,7 @@ class BaseModels:
             else:
                 from transformers import MistralForCausalLM
             model = MistralForCausalLM.from_pretrained(model_to_load, **config_kwargs)
-        elif self.model_args.model_type in ['baichuan', 'aquila', 'internlm', 'moss', 'xverse']:
+        elif self.model_args.model_type in ['baichuan', 'aquila', 'internlm', 'moss', 'xverse', 'yi']:
             from transformers import AutoModelForCausalLM
             model = AutoModelForCausalLM.from_pretrained(model_to_load, trust_remote_code=True, **config_kwargs)
         elif self.model_args.model_type == 'qwen':
